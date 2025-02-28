@@ -1,12 +1,41 @@
-import React from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 
 export default function Header() {
+  const [user, setUser] = useState<{ username: string; points: number } | null>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setUser(null);
+    window.location.reload();
+  };
+
   return (
     <header className="w-full p-4 bg-gray-100 shadow-md flex justify-between items-center">
       <h1 className="text-2xl font-bold">Audio Transcription</h1>
       <nav>
-        <a href="/login" className="text-blue-600 hover:underline">Log in</a>
-        <a href="/signup" className="ml-4 text-blue-600 hover:underline">Sign up</a>
+        {user ? (
+          <div className="flex items-center space-x-4">
+            <span>👤 {user.username}</span>
+            <span>⭐ {user.points} Points</span>
+            <button className="bg-red-500 text-white px-3 py-1 rounded" onClick={handleLogout}>
+              Logout
+            </button>
+          </div>
+        ) : (
+          <>
+            <a href="/login" className="text-blue-600 hover:underline">Log in</a>
+            <a href="/signup" className="ml-4 text-blue-600 hover:underline">Sign up</a>
+          </>
+        )}
       </nav>
     </header>
   );
