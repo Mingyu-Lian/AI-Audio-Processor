@@ -5,5 +5,5 @@ from rest_framework.decorators import api_view
 
 @api_view(['GET'])
 def test_api(request):
-    return Response({'message': 'Speech API is working!'})
+    return Response({'message': 'Voice API is working!'})
 # Create your views here.

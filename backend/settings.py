@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'speech', # Add the speech app to the list of installed apps
+    'voice', # Add the voice app to the list of installed apps
     'rest_framework', 
 ]
 

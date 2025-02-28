@@ -19,5 +19,5 @@ from django.urls import path, include  # Import the include function
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('speech/', include('speech.urls')),  # Include the speech app's URLs
+    path('voice/', include('voice.urls')),  # Include the voice app's URLs
 ]
