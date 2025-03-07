@@ -16,7 +16,7 @@ export default function LoginSignupModal() {
   const handleSubmit = async () => {
     if (isLogin) {
       // 登录逻辑
-      if (email === "test@example.com" && password === "password123") {
+      if (email === "test@123.com" && password === "123") {
         localStorage.setItem("user", JSON.stringify({ username: "TestUser", points: 60 }));
         window.location.reload(); // 刷新页面
       } else {
