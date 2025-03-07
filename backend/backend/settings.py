@@ -58,6 +58,7 @@ MIDDLEWARE = [
 
 AUTH_USER_MODEL = "users.CustomUser"
 CORS_ALLOW_ALL_ORIGINS = True
+LOGIN_URL = "/admin/login/"
 
 ROOT_URLCONF = 'backend.urls'
 

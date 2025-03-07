@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUser
-from .serializers import UserSerializer
+from .serializers import UserSerializer, UserCreateSerializer
 
 # 生成 Token
 def get_tokens_for_user(user):
@@ -14,15 +14,16 @@ def get_tokens_for_user(user):
 
 # 注册 API
 class RegisterView(generics.CreateAPIView):
-    queryset = CustomUser.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [permissions.AllowAny]
+    queryset = CustomUser.objects.all()  # 查询所有用户
+    serializer_class = UserCreateSerializer     # 使用 UserCreateSerializer
+    permission_classes = [permissions.AllowAny] # 允许任何人注册
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        return Response({"user": UserSerializer(user).data, "tokens": get_tokens_for_user(user)})
+    def post(self, request, *args, **kwargs): # 重写 post 方法
+        serializer = self.get_serializer(data=request.data) # 获取请求数据
+        serializer.is_valid(raise_exception=True)  # 验证数据
+        user = serializer.save()  # 保存用户
+        #这个save 方法是在serializers.py中定义的，实际上是调用了CustomUser.objects.create_user(**validated_data)方法
+        return Response(UserSerializer(user).data)  # 返回用户 ID、用户名、邮箱
 
 # 登录 API
 class LoginView(generics.GenericAPIView):
