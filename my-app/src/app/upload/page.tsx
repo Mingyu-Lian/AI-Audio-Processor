@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { Button } from "@/components/ui/button"; // 引入 ShadCN UI 按钮
 
 export default function Upload() {
   const [user, setUser] = useState<{ username: string; points: number } | null>(null);
@@ -50,6 +51,8 @@ export default function Upload() {
       <Header />
       <main className="flex flex-col items-center justify-center flex-1 p-6 text-center">
         <h2 className="text-3xl font-bold">Upload Audio File</h2>
+        
+        {/* 拖拽上传框 */}
         <div
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
@@ -57,10 +60,28 @@ export default function Upload() {
         >
           <p>Drag & Drop files here</p>
         </div>
-        <input type="file" multiple accept="audio/*" className="mt-4" onChange={handleFileChange} />
-        <button className="mt-4 bg-green-500 text-white px-4 py-2 rounded" onClick={handleSubmit}>
+
+        {/* 隐藏的文件选择框 */}
+        <input
+          type="file"
+          multiple
+          accept="audio/*"
+          id="fileInput"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+
+        {/* 选择文件按钮 */}
+        <Button className="mt-4" onClick={() => document.getElementById("fileInput")?.click()}>
+          Choose File
+        </Button>
+
+        {/* 提交按钮 */}
+        <Button className="mt-4 bg-green-500 text-white px-4 py-2 rounded" onClick={handleSubmit}>
           {uploading ? "Uploading..." : "Submit"}
-        </button>
+        </Button>
+
+        {/* 选中文件列表 */}
         {files.length > 0 && (
           <div className="mt-4">
             <h3 className="font-bold">Selected Files:</h3>
@@ -71,6 +92,11 @@ export default function Upload() {
             </ul>
           </div>
         )}
+
+        {/* 返回主页按钮 */}
+        <Button className="mt-6 bg-gray-500 text-white px-4 py-2 rounded" onClick={() => router.push("/")}>
+          Return to Home
+        </Button>
       </main>
       <Footer />
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import LoginSignupModal from "./LoginSignupModal";
 
 export default function Header() {
   const [user, setUser] = useState<{ username: string; points: number } | null>(null);
@@ -31,10 +32,7 @@ export default function Header() {
             </button>
           </div>
         ) : (
-          <>
-            <a href="/login" className="text-blue-600 hover:underline">Log in</a>
-            <a href="/signup" className="ml-4 text-blue-600 hover:underline">Sign up</a>
-          </>
+          <LoginSignupModal />
         )}
       </nav>
     </header>
