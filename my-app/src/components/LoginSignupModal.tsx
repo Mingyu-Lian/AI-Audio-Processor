@@ -6,37 +6,63 @@ import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
 export default function LoginSignupModal() {
-  const [isLogin, setIsLogin] = useState(true); // true = 登录, false = 注册
+  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState(""); // 仅注册时使用
-  const [error, setError] = useState("");
+  const [name, setName] = useState(""); 
+  const [error, setError] = useState<{ email?: string; password?: string; general?: string }>({});
+  const [forgotPassword, setForgotPassword] = useState(false); // 忘记密码模式
+  const [successMessage, setSuccessMessage] = useState("");
   const router = useRouter();
 
-  const handleSubmit = async () => {
-    if (isLogin) {
-      // 登录逻辑
-      if (email === "test@123.com" && password === "123") {
-        localStorage.setItem("user", JSON.stringify({ username: "TestUser", points: 60 }));
-        window.location.reload(); // 刷新页面
-      } else {
-        setError("Invalid email or password");
-      }
-    } else {
-      // 注册逻辑
-      if (email && password && name) {
-        localStorage.setItem("user", JSON.stringify({ username: name, points: 60 }));
-        window.location.reload();
-      } else {
-        setError("All fields are required");
-      }
-    }
+  const validateEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
-  // ✅ 监听 Enter 键
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter") {
-      handleSubmit();
+  const handleSubmit = async () => {
+    setError({});
+    setSuccessMessage("");
+
+    if (!validateEmail(email)) {
+      setError((prev) => ({ ...prev, email: "Invalid email" }));
+      return;
+    }
+
+    if (forgotPassword) {
+      // 这里是请求后端发送重置密码邮件的地方
+      console.log(`Requesting password reset for ${email}`);
+
+      // 这里应该调用后端 API，暂时模拟
+      setSuccessMessage("A password reset email has been sent.");
+      return;
+    }
+
+    if (isLogin) {
+      const mockUsers = [
+        { email: "test@example.com", password: "password123", username: "TestUser", points: 60 },
+      ];
+      const user = mockUsers.find((u) => u.email === email);
+
+      if (!user) {
+        setError((prev) => ({ ...prev, email: "Account does not exist" }));
+        return;
+      }
+
+      if (user.password !== password) {
+        setError((prev) => ({ ...prev, password: "Incorrect password" }));
+        return;
+      }
+
+      localStorage.setItem("user", JSON.stringify({ username: user.username, points: user.points }));
+      window.location.reload();
+    } else {
+      if (!name) {
+        setError((prev) => ({ ...prev, general: "Name is required" }));
+        return;
+      }
+
+      localStorage.setItem("user", JSON.stringify({ username: name, points: 60 }));
+      window.location.reload();
     }
   };
 
@@ -47,27 +73,30 @@ export default function LoginSignupModal() {
       </DialogTrigger>
       <DialogContent className="p-6 w-[400px]">
         <DialogHeader>
-          <DialogTitle>{isLogin ? "Log in" : "Sign up"}</DialogTitle>
-          <div className="flex justify-center gap-6 border-b pb-3">
-            <button
-              className={`text-lg font-bold ${isLogin ? "border-b-2 border-blue-500" : "text-gray-500"}`}
-              onClick={() => setIsLogin(true)}
-            >
-              Log in
-            </button>
-            <button
-              className={`text-lg font-bold ${!isLogin ? "border-b-2 border-blue-500" : "text-gray-500"}`}
-              onClick={() => setIsLogin(false)}
-            >
-              Sign up
-            </button>
-          </div>
+          <DialogTitle>{forgotPassword ? "Reset Password" : isLogin ? "Log in" : "Sign up"}</DialogTitle>
+          {!forgotPassword && (
+            <div className="flex justify-center gap-6 border-b pb-3">
+              <button
+                className={`text-lg font-bold ${isLogin ? "border-b-2 border-blue-500" : "text-gray-500"}`}
+                onClick={() => { setIsLogin(true); setError({}); }}
+              >
+                Log in
+              </button>
+              <button
+                className={`text-lg font-bold ${!isLogin ? "border-b-2 border-blue-500" : "text-gray-500"}`}
+                onClick={() => { setIsLogin(false); setError({}); }}
+              >
+                Sign up
+              </button>
+            </div>
+          )}
         </DialogHeader>
 
-        {error && <p className="text-red-500 text-center">{error}</p>}
+        {error.general && <p className="text-red-500 text-center">{error.general}</p>}
+        {successMessage && <p className="text-green-500 text-center">{successMessage}</p>}
 
-        <div className="flex flex-col gap-4 mt-4" onKeyDown={handleKeyDown}> {/* ✅ 监听 Enter */}
-          {!isLogin && (
+        <div className="flex flex-col gap-4 mt-4">
+          {!isLogin && !forgotPassword && (
             <input
               className="border p-2 rounded"
               type="text"
@@ -77,26 +106,45 @@ export default function LoginSignupModal() {
               required
             />
           )}
-          <input
-            className="border p-2 rounded"
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            className="border p-2 rounded"
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="flex flex-col">
+            <input
+              className={`border p-2 rounded ${error.email ? "border-red-500" : ""}`}
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            {error.email && <p className="text-red-500 text-sm mt-1">{error.email}</p>}
+          </div>
+          {!forgotPassword && (
+            <div className="flex flex-col">
+              <input
+                className={`border p-2 rounded ${error.password ? "border-red-500" : ""}`}
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              {error.password && <p className="text-red-500 text-sm mt-1">{error.password}</p>}
+            </div>
+          )}
           <Button onClick={handleSubmit} className="w-full">
-            {isLogin ? "Log in" : "Sign up"}
+            {forgotPassword ? "Reset Password" : isLogin ? "Log in" : "Sign up"}
           </Button>
         </div>
+
+        {!forgotPassword && isLogin && (
+          <button className="text-blue-500 text-sm mt-2" onClick={() => setForgotPassword(true)}>
+            Forgot password?
+          </button>
+        )}
+        {forgotPassword && (
+          <button className="text-blue-500 text-sm mt-2" onClick={() => setForgotPassword(false)}>
+            Back to login
+          </button>
+        )}
       </DialogContent>
     </Dialog>
   );
