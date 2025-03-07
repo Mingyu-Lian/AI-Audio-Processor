@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import LoginSignupModal from "./LoginSignupModal";
+import AddPointModal from "./AddPointModal";
 
 export default function Header() {
   const [user, setUser] = useState<{ username: string; points: number } | null>(null);
@@ -27,6 +28,7 @@ export default function Header() {
           <div className="flex items-center space-x-4">
             <span>👤 {user.username}</span>
             <span>⭐ {user.points} Points</span>
+            <AddPointModal /> {/* ✅ 新增 Add Point 按钮 */}
             <button className="bg-red-500 text-white px-3 py-1 rounded" onClick={handleLogout}>
               Logout
             </button>

@@ -33,6 +33,13 @@ export default function LoginSignupModal() {
     }
   };
 
+  // ✅ 监听 Enter 键
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter") {
+      handleSubmit();
+    }
+  };
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -40,7 +47,7 @@ export default function LoginSignupModal() {
       </DialogTrigger>
       <DialogContent className="p-6 w-[400px]">
         <DialogHeader>
-          <DialogTitle>{isLogin ? "Log in" : "Sign up"}</DialogTitle> {/* ✅ 添加 DialogTitle */}
+          <DialogTitle>{isLogin ? "Log in" : "Sign up"}</DialogTitle>
           <div className="flex justify-center gap-6 border-b pb-3">
             <button
               className={`text-lg font-bold ${isLogin ? "border-b-2 border-blue-500" : "text-gray-500"}`}
@@ -59,7 +66,7 @@ export default function LoginSignupModal() {
 
         {error && <p className="text-red-500 text-center">{error}</p>}
 
-        <div className="flex flex-col gap-4 mt-4">
+        <div className="flex flex-col gap-4 mt-4" onKeyDown={handleKeyDown}> {/* ✅ 监听 Enter */}
           {!isLogin && (
             <input
               className="border p-2 rounded"
