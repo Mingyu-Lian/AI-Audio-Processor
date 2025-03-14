@@ -44,11 +44,11 @@ class LoginView(generics.GenericAPIView):
         try:
             user = user_model.objects.get(email=email)  # 使用 email 查找用户
         except user_model.DoesNotExist:
-            return Response({"detail": "Invalid credentials"}, status=400)
+            return Response({"detail": "The User does not Exist"}, status=400)
 
         # 检查密码是否匹配
         if not user.check_password(password):
-            return Response({"detail": "Invalid credentials"}, status=400)
+            return Response({"detail": "Wrong Password"}, status=400)
 
         update_last_login(None, user)  # 更新 last_login 时间
         tokens = get_tokens_for_user(user)  # 生成 JWT

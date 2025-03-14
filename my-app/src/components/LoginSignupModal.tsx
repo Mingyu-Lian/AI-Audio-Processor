@@ -9,7 +9,6 @@ export default function LoginSignupModal() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState(""); 
   const [error, setError] = useState<{ email?: string; password?: string; general?: string }>({});
   const [forgotPassword, setForgotPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
