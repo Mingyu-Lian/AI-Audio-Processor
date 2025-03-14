@@ -24,53 +24,70 @@ export default function LoginSignupModal() {
     setError({});
     setSuccessMessage("");
     setIsLoading(true);
-
+  
     try {
       if (!validateEmail(email)) {
         setError((prev) => ({ ...prev, email: "Invalid email" }));
         return;
       }
-
+  
       if (forgotPassword) {
-        // 这里是请求后端发送重置密码邮件的地方
         console.log(`Requesting password reset for ${email}`);
-
-        // 这里应该调用后端 API，暂时模拟
         setSuccessMessage("A password reset email has been sent.");
         return;
       }
-
+  
       if (isLogin) {
-        const mockUsers = [
-          { email: "test@example.com", password: "password123", username: "TestUser", points: 60 },
-        ];
-        const user = mockUsers.find((u) => u.email === email);
-
-        if (!user) {
-          setError((prev) => ({ ...prev, email: "Account does not exist" }));
+        const response = await fetch("http://localhost:8000/api/users/login/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+  
+        const data = await response.json();
+  
+        if (!response.ok) {
+          if (data.detail === "Invalid credentials") {
+            setError((prev) => ({ ...prev, password: "Incorrect password" }));
+          } else if (data.detail === "User does not exist") {
+            setError((prev) => ({ ...prev, email: "Account does not exist" }));
+          }
           return;
         }
-
-        if (user.password !== password) {
-          setError((prev) => ({ ...prev, password: "Incorrect password" }));
-          return;
-        }
-
-        localStorage.setItem("user", JSON.stringify({ username: user.username, points: user.points }));
+  
+        localStorage.setItem("user", JSON.stringify({ email: data.email, points: data.points }));
         window.location.reload();
       } else {
-        if (!name) {
-          setError((prev) => ({ ...prev, general: "Name is required" }));
+        const response = await fetch("http://localhost:8000/api/users/register/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+  
+        const data = await response.json();
+  
+        if (!response.ok) {
+          if (data.email) {
+            setError((prev) => ({ ...prev, email: "Email already registered. Please use another email." })); // ❗处理邮箱已注册
+          } else {
+            setError((prev) => ({ ...prev, general: data.detail || "Registration failed" }));
+          }
           return;
         }
-
-        localStorage.setItem("user", JSON.stringify({ username: name, points: 60 }));
-        window.location.reload();
+  
+        // **🔹 注册成功后的处理**
+        setSuccessMessage("Registration successful!");
+        setTimeout(() => {
+          setIsLogin(true); // 切换到登录界面
+          setEmail(data.email); // 自动填充邮箱
+          setSuccessMessage(""); // 清除成功消息
+        }, 1000);
       }
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   // Social login handlers
   const handleGoogleLogin = async () => {
@@ -128,20 +145,15 @@ export default function LoginSignupModal() {
         </DialogHeader>
 
         {error.general && <p className="text-red-500 text-center">{error.general}</p>}
-        {successMessage && <p className="text-green-500 text-center">{successMessage}</p>}
+        {successMessage && (
+          <div className="text-center text-lg font-semibold text-black-300 bg-green-100 p-3 rounded-md shadow-md">
+            {successMessage}
+          </div>
+        )}
 
         {/* Standard Email/Password Form */}
         <div className="flex flex-col gap-4 mt-4">
-          {!isLogin && !forgotPassword && (
-            <input
-              className="border p-2 rounded"
-              type="text"
-              placeholder="Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          )}
+          
           <div className="flex flex-col">
             <input
               className={`border p-2 rounded ${error.email ? "border-red-500" : ""}`}

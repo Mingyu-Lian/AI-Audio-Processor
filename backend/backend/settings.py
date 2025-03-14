@@ -46,6 +46,7 @@ INSTALLED_APPS = [
 
 
 MIDDLEWARE = [
+    
     "corsheaders.middleware.CorsMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -59,6 +60,7 @@ MIDDLEWARE = [
 AUTH_USER_MODEL = "users.CustomUser"
 CORS_ALLOW_ALL_ORIGINS = True
 LOGIN_URL = "/admin/login/"
+CORS_ALLOW_ALL_ORIGINS = True
 
 ROOT_URLCONF = 'backend.urls'
 
