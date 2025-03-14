@@ -55,7 +55,17 @@ export default function LoginSignupModal() {
           return;
         }
   
-        localStorage.setItem("user", JSON.stringify({ email: data.email, points: data.points }));
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            email: data.user.email,
+            points: data.user.points,
+            token: data.tokens.access, // 存储 access token，方便后续请求携带
+            // 如果你想在后面也用 refresh token，可以一起保存
+            refreshToken: data.tokens.refresh
+          })
+        );
+
         window.location.reload();
       } else {
         const response = await fetch("http://localhost:8000/api/users/register/", {

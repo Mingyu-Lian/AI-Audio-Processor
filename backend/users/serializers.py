@@ -1,38 +1,14 @@
 from rest_framework import serializers
 from .models import CustomUser
 from django.contrib.auth import authenticate
-from rest_framework_simplejwt.tokens import RefreshToken
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ["id", "email"]  # 只返回 ID 和 email
-
-class UserCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CustomUser
-        fields = ["email", "password"]  # 只需要 email 和密码
-        extra_kwargs = {"password": {"write_only": True}}
-
-    def create(self, validated_data):
-        # 解决缺少 username 的问题
-        user = CustomUser.objects.create_user(
-            email=validated_data["email"],
-            password=validated_data["password"],
-            username=validated_data.get("email").split("@")[0]  # 使用邮箱前缀作为默认用户名
-        )
-        return user
-    
-
-
-from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from .models import CustomUser
+
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ["id", "email"]  # 只返回 ID 和 email
+        fields = ["id", "email","points"] 
 
 class UserCreateSerializer(serializers.ModelSerializer):
     """ 用于创建用户 """
