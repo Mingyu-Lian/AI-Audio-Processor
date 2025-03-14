@@ -5,12 +5,16 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import update_last_login
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUser
-from .serializers import UserSerializer, UserCreateSerializer
+from .serializers import UserSerializer, UserCreateSerializer, LoginSerializer
+from django.contrib.auth import get_user_model
 
-# 生成 Token
+# 生成 JWT Token
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
-    return {"refresh": str(refresh), "access": str(refresh.access_token)}
+    return {
+        "refresh": str(refresh),
+        "access": str(refresh.access_token),
+    }
 
 # 注册 API
 class RegisterView(generics.CreateAPIView):
@@ -25,17 +29,30 @@ class RegisterView(generics.CreateAPIView):
         #这个save 方法是在serializers.py中定义的，实际上是调用了CustomUser.objects.create_user(**validated_data)方法
         return Response(UserSerializer(user).data)  # 返回用户 ID、用户名、邮箱
 
-# 登录 API
+
+# login API
 class LoginView(generics.GenericAPIView):
+    serializer_class = LoginSerializer
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         email = request.data.get("email")
         password = request.data.get("password")
-        user = authenticate(email=email, password=password)
-        if user:
-            update_last_login(None, user)
-            return Response({"user": UserSerializer(user).data, "tokens": get_tokens_for_user(user)})
-        return Response({"error": "Invalid Credentials"}, status=400)
+
+        # 获取用户对象
+        user_model = get_user_model()
+        try:
+            user = user_model.objects.get(email=email)  # 使用 email 查找用户
+        except user_model.DoesNotExist:
+            return Response({"detail": "Invalid credentials"}, status=400)
+
+        # 检查密码是否匹配
+        if not user.check_password(password):
+            return Response({"detail": "Invalid credentials"}, status=400)
+
+        update_last_login(None, user)  # 更新 last_login 时间
+        tokens = get_tokens_for_user(user)  # 生成 JWT
+
+        return Response({"user": UserSerializer(user).data, "tokens": tokens})
 
 # Create your views here.

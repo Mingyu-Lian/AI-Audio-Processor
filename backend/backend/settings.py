@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -40,7 +42,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "users",
-    "rest_framework_simplejwt",
+    "rest_framework_simplejwt", # 添加 JWT 支持
 ]
 
 
@@ -57,10 +59,27 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ( # 配置 JWT 认证
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    )
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=1),  # Access Token 有效期 1 小时
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Refresh Token 7 天,用户 7 天内无需重新登录
+    "ROTATE_REFRESH_TOKENS": True,  # 允许刷新 Token
+    "BLACKLIST_AFTER_ROTATION": True,  # 旧 Token 失效
+    "AUTH_HEADER_TYPES": ("Bearer",),  # 前端请求的 Header 格式
+}
+
 AUTH_USER_MODEL = "users.CustomUser"
 CORS_ALLOW_ALL_ORIGINS = True
 LOGIN_URL = "/admin/login/"
 CORS_ALLOW_ALL_ORIGINS = True
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # 允许使用 email 进行身份验证
+]
 
 ROOT_URLCONF = 'backend.urls'
 

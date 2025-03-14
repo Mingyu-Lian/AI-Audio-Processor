@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import CustomUser
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -51,3 +53,19 @@ class UserCreateSerializer(serializers.ModelSerializer):
             username=validated_data["email"].split("@")[0]  # 使用 email 前缀作为 username
         )
         return user
+    
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        email = data.get("email")
+        password = data.get("password")
+
+        user = authenticate(username=email, password=password)  # 使用 authenticate 验证
+        if not user:
+            raise serializers.ValidationError("Invalid credentials")
+
+        data["user"] = user
+        return data
