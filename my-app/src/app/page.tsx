@@ -51,7 +51,7 @@ export default function Home() {
         {!user ? (
           // 未登录状态，显示“Login/Signup”按钮
           <div>
-            <h2 className="text-3xl font-bold mb-4">Welcome to Audio Transcription</h2>
+            <h2 className="text-3xl font-bold mb-4">Welcome to SentriScribe</h2>
             <p className="text-gray-600">Please log in or sign up to use the tool.</p>
             <div className="mt-6">
               <LoginSignupModal />
