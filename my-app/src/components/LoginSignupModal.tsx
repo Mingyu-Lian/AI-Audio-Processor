@@ -31,8 +31,7 @@ export default function LoginSignupModal() {
       }
   
       if (forgotPassword) {
-        console.log(`Requesting password reset for ${email}`);
-        setSuccessMessage("A password reset email has been sent.");
+        setSuccessMessage("Forget password? Please send a email to 12345@sentriwise.com using the login Email.");
         return;
       }
   
@@ -46,19 +45,22 @@ export default function LoginSignupModal() {
         const data = await response.json();
   
         if (!response.ok) {
-          if (data.detail === "Invalid credentials") {
+          setForgotPassword(false);
+        
+          if (data.detail === "The User does not Exist") {
+            setError((prev) => ({ ...prev, email: "Account does not exist, please signup" }));
+          } else if (data.detail === "Wrong Password") {
             setError((prev) => ({ ...prev, password: "Incorrect password" }));
-          } else if (data.detail === "User does not exist") {
-            setError((prev) => ({ ...prev, email: "Account does not exist" }));
+          } else {
+            setError((prev) => ({ ...prev, general: "Login failed. Please try again." }));
           }
           return;
         }
-  
         localStorage.setItem(
           "user",
           JSON.stringify({
             email: data.user.email,
-            points: data.user.points,
+            credits: data.user.credits,
             token: data.tokens.access, // 存储 access token，方便后续请求携带
             // 如果你想在后面也用 refresh token，可以一起保存
             refreshToken: data.tokens.refresh
@@ -162,38 +164,49 @@ export default function LoginSignupModal() {
 
         {/* Standard Email/Password Form */}
         <div className="flex flex-col gap-4 mt-4">
-          
-          <div className="flex flex-col">
-            <input
-              className={`border p-2 rounded ${error.email ? "border-red-500" : ""}`}
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            {error.email && <p className="text-red-500 text-sm mt-1">{error.email}</p>}
-          </div>
           {!forgotPassword && (
-            <div className="flex flex-col">
-              <input
-                className={`border p-2 rounded ${error.password ? "border-red-500" : ""}`}
-                type="password"
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-              {error.password && <p className="text-red-500 text-sm mt-1">{error.password}</p>}
+            <>
+              <div className="flex flex-col">
+                <input
+                  className={`border p-2 rounded ${error.email ? "border-red-500" : ""}`}
+                  type="email"
+                  placeholder="Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+                {error.email && <p className="text-red-500 text-sm mt-1">{error.email}</p>}
+              </div>
+
+              <div className="flex flex-col">
+                <input
+                  className={`border p-2 rounded ${error.password ? "border-red-500" : ""}`}
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                {error.password && <p className="text-red-500 text-sm mt-1">{error.password}</p>}
+              </div>
+            </>
+          )}
+
+          {!forgotPassword && (
+            <Button 
+              onClick={handleSubmit} 
+              className="w-full"
+              disabled={isLoading}
+            >
+              {isLoading ? "Loading..." : isLogin ? "Log in" : "Sign up"}
+            </Button>
+          )}
+
+          {forgotPassword && (
+            <div className="text-center text-sm text-gray-700 mt-2">
+              Forget password? Please send a email to <b>12345@sentriwise.com</b> using the login Email.
             </div>
           )}
-          <Button 
-            onClick={handleSubmit} 
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? "Loading..." : forgotPassword ? "Reset Password" : isLogin ? "Log in" : "Sign up"}
-          </Button>
         </div>
 
         {!forgotPassword && isLogin && (

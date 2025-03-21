@@ -7,13 +7,13 @@ export default function AddPointModal() {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">Add Point</Button>
+        <Button variant="outline">Add Credit</Button>
       </DialogTrigger>
       <DialogContent className="p-6 w-[400px]">
         <DialogHeader>
-          <DialogTitle>Add Points</DialogTitle>
+          <DialogTitle>Add Credits</DialogTitle>
         </DialogHeader>
-        <p>Here you can add points to your account.</p>
+        <p>Here you can add credits to your account.</p>
       </DialogContent>
     </Dialog>
   );

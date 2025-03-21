@@ -3,7 +3,7 @@ from django.db import models
 
 class CustomUser(AbstractUser):
     email = models.EmailField(unique=True)  # 邮箱必须唯一
-    points = models.IntegerField(default=60)
+    credits = models.IntegerField(default=60)
     register_time = models.DateTimeField(auto_now_add=True)
 
     USERNAME_FIELD = "email"  # 用 email 作为唯一登录字段

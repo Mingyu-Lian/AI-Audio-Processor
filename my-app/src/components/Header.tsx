@@ -7,7 +7,7 @@ import AddPointModal from "./AddPointModal";
 // 1) 声明用户类型
 type UserType = {
   email: string;
-  points: number;
+  credits: number;
   token?: string; // 如果不需要也可以不写
 };
 
@@ -19,7 +19,7 @@ export default function Header() {
     // 3) 组件加载时，从 localStorage 获取用户信息
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      // 注意: JSON.parse 之后应该是 { email, points, token }
+      // 注意: JSON.parse 之后应该是 { email, credits, token }
       setUser(JSON.parse(storedUser));
     }
   }, []);
@@ -33,13 +33,13 @@ export default function Header() {
 
   return (
     <header className="w-full p-4 bg-gray-100 shadow-md flex justify-between items-center">
-      <h1 className="text-2xl font-bold">Audio Transcription</h1>
+      <h1 className="text-2xl font-bold"> SentriScirbe </h1>
       <nav>
         {user ? (
           // 如果 user 不为空（已登录），显示用户信息和登出按钮
           <div className="flex items-center space-x-4">
             <span>👤 {user.email}</span>
-            <span>⭐ {user.points} Points</span>
+            <span>⭐ {user.credits} Credits</span>
             <AddPointModal />
             <button
               className="bg-red-500 text-white px-3 py-1 rounded"

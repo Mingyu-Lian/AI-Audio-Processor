@@ -8,7 +8,6 @@ PW: 123123
 
 
 
-
 Back-end run:
 
 `source venv/bin/activate`

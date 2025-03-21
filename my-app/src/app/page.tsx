@@ -8,7 +8,7 @@ import LoginSignupModal from "@/components/LoginSignupModal";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
-  const [user, setUser] = useState<{ username: string; points: number } | null>(null);
+  const [user, setUser] = useState<{ username: string; credits: number } | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
