@@ -9,7 +9,8 @@ export default function LoginSignupModal() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<{ email?: string; password?: string; general?: string }>({});
+  const [confirmPassword, setConfirmPassword] = useState(""); // New field for signup
+  const [error, setError] = useState<{ email?: string; password?: string; confirmPassword?: string; general?: string }>({});
   const [forgotPassword, setForgotPassword] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -69,6 +70,12 @@ export default function LoginSignupModal() {
 
         window.location.reload();
       } else {
+        // **Signup Validation: Ensure passwords match**
+        if (password !== confirmPassword) {
+          setError((prev) => ({ ...prev, confirmPassword: "Passwords do not match." }));
+          return;
+        }
+
         const response = await fetch("http://localhost:8000/api/users/register/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -189,6 +196,20 @@ export default function LoginSignupModal() {
                 />
                 {error.password && <p className="text-red-500 text-sm mt-1">{error.password}</p>}
               </div>
+            {/* Confirm Password field for signup only */}
+              {!isLogin && (
+                <div className="flex flex-col">
+                  <input
+                    className={`border p-2 rounded ${error.confirmPassword ? "border-red-500" : ""}`}
+                    type="password"
+                    placeholder="Confirm Password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                  />
+                  {error.confirmPassword && <p className="text-red-500 text-sm mt-1">{error.confirmPassword}</p>}
+                </div>
+              )}
             </>
           )}
 
