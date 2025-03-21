@@ -11,12 +11,15 @@ import { Input } from "@/components/ui/input";
 type UserType = {
   email: string;
   credits: number;
+  token?: string;
 };
 
 export default function Header() {
   const [user, setUser] = useState<UserType | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isPasswordChanged, setIsPasswordChanged] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -51,113 +54,169 @@ export default function Header() {
     }
   };
 
-// formatCreditTime(125) → "2 Hours 5 Mins"
-// formatCreditTime(61) → "1 Hour 1 Min"
-// formatCreditTime(60) → "1 Hour"
-// formatCreditTime(1) → "1 Min"
-// formatCreditTime(0) → "0 Mins"
+  // formatCreditTime(125) → "2 Hours 5 Mins"
+  // formatCreditTime(61) → "1 Hour 1 Min"
+  // formatCreditTime(60) → "1 Hour"
+  // formatCreditTime(1) → "1 Min"
+  // formatCreditTime(0) → "0 Mins"
 
-// Password Change Handlers
-const handlePasswordChange = () => {
-  if (newPassword !== confirmPassword) {
-    setPasswordError("Passwords do not match.");
-    return;
-  }
-  setPasswordError("");
-  alert("Password change requested! (Backend not implemented yet)");
-  setIsChangingPassword(false);
-};
+  // Password Change Handlers
+  const handlePasswordChange = async () => {
+    setPasswordError("");
 
-return (
-  <header className="w-full p-4 bg-gray-100 shadow-md flex items-center justify-between">
-    <h1 className="text-xl md:text-2xl font-bold">SentriScribe</h1>
-    <nav className="flex items-center space-x-4">
-      {user ? (
-        <>
-          {/* Credit Time Display */}
-          <span className="text-sm md:text-base font-semibold text-gray-700">
-            ⏳ {formatCreditTime(user.credits)}
-          </span>
+    if (!oldPassword) {
+      setPasswordError("Old password is required.");
+      return;
+    }
 
-          {/* Profile Dropdown */}
-          <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-            <DialogTrigger asChild>
-              <button className="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded-md text-sm md:text-base">
-                My Profile
-              </button>
-            </DialogTrigger>
-            <DialogContent 
-              className="p-6 w-[300px] rounded-lg shadow-lg bg-white"
-              aria-describedby="profile-dialog-description"
-            >
-              <DialogHeader>
-                <DialogTitle className="text-lg font-semibold">Profile</DialogTitle>
-              </DialogHeader>
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match.");
+      return;
+    }
 
-              {/* Hidden description for accessibility */}
-              <p id="profile-dialog-description" className="sr-only">
-                User profile details, including email, available credits, and time left.
-              </p>
+    try {
+      const token = user?.token;
 
-              <div className="mt-4 space-y-2">
-                <p className="text-gray-600"><strong>Email:</strong> {user.email}</p>
-                <p className="text-gray-600"><strong>Credits:</strong> {user.credits}</p>
-                <p className="text-gray-600"><strong>Time Left:</strong> {formatCreditTime(user.credits)}</p>
-              </div>
+      if (!token) {
+        setPasswordError("User not authenticated. Please log in again.");
+        return;
+      }
 
-              {/* Add Credit & Change Password Buttons (Side by Side) */}
-              <div className="mt-4 flex space-x-2">
-                <AddPointModal />
-                <Dialog open={isChangingPassword} onOpenChange={setIsChangingPassword}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline">Change Password</Button>
-                  </DialogTrigger>
-                  <DialogContent className="p-6 w-[400px]">
-                    <DialogHeader>
-                      <DialogTitle>Change Password</DialogTitle>
-                    </DialogHeader>
+      const response = await fetch("http://localhost:8000/api/users/change-password/", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`, // Include the JWT token
+        },
+        body: JSON.stringify({
+          old_password: oldPassword,  // Sending old password
+          new_password: newPassword,
+          confirm_password: confirmPassword,
+        }),
+      });
 
-                    <p>Enter a new password for your account.</p>
-                    <div className="flex flex-col gap-3 mt-3">
-                      <Input
-                        type="password"
-                        placeholder="New Password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                      />
-                      <Input
-                        type="password"
-                        placeholder="Confirm New Password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                      />
-                      {passwordError && <p className="text-red-500 text-sm">{passwordError}</p>}
-                    </div>
+      const data = await response.json();
 
-                    <div className="flex justify-end space-x-2 mt-4">
-                      <Button variant="outline" onClick={() => setIsChangingPassword(false)}>
-                        Cancel
-                      </Button>
-                      <Button onClick={handlePasswordChange}>Submit</Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
+      if (!response.ok) {
+        if (data.old_password) {
+          setPasswordError("Old password is incorrect.");
+        } else if (data.confirm_password) {
+          setPasswordError("New passwords do not match.");
+        } else {
+          setPasswordError(data.detail || "Failed to change password.");
+        }
+        return;
+      }
 
-              {/* Logout Button */}
-              <Button 
-                className="bg-red-500 text-white w-full mt-3" 
-                onClick={handleLogout}
-              >
-                Logout
-              </Button>
-            </DialogContent>
-          </Dialog>
-        </>
-      ) : (
-        <LoginSignupModal />
-      )}
-    </nav>
-  </header>
-);
+      // Show password changed success modal
+      setIsPasswordChanged(true);
+      setTimeout(() => {
+        handleLogout(); // Redirect to login after 2 seconds
+      }, 2000);
+    } catch (error) {
+      console.error("Password change error:", error);
+      setPasswordError("Something went wrong. Please try again.");
+    }
+  };
+
+
+
+  return (
+    <header className="w-full p-4 bg-gray-100 shadow-md flex items-center justify-between">
+      <h1 className="text-xl md:text-2xl font-bold">SentriScribe</h1>
+      <nav className="flex items-center space-x-4">
+        {user ? (
+          <>
+            {/* Credit Time Display */}
+            <span className="text-sm md:text-base font-semibold text-gray-700">
+              ⏳ {formatCreditTime(user.credits)}
+            </span>
+
+            {/* Profile Dropdown */}
+            <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
+              <DialogTrigger asChild>
+                <button className="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded-md text-sm md:text-base">
+                  My Profile
+                </button>
+              </DialogTrigger>
+              <DialogContent className="p-6 w-[300px] rounded-lg shadow-lg bg-white">
+                <DialogHeader>
+                  <DialogTitle className="text-lg font-semibold">Profile</DialogTitle>
+                </DialogHeader>
+
+                <div className="mt-4 space-y-2">
+                  <p className="text-gray-600"><strong>Email:</strong> {user.email}</p>
+                  <p className="text-gray-600"><strong>Credits:</strong> {user.credits}</p>
+                  <p className="text-gray-600"><strong>Time Left:</strong> {formatCreditTime(user.credits)}</p>
+                </div>
+
+                {/* Add Credit & Change Password Buttons */}
+                <div className="mt-4 flex space-x-2">
+                  <AddPointModal />
+                  <Dialog open={isChangingPassword} onOpenChange={setIsChangingPassword}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">Change Password</Button>
+                    </DialogTrigger>
+                    <DialogContent className="p-6 w-[400px]">
+                      <DialogHeader>
+                        <DialogTitle>Change Password</DialogTitle>
+                      </DialogHeader>
+
+                      <p>Enter your old password and set a new password.</p>
+
+                      <div className="flex flex-col gap-3 mt-3">
+                        <Input
+                          type="password"
+                          placeholder="Old Password"
+                          value={oldPassword}
+                          onChange={(e) => setOldPassword(e.target.value)}
+                        />
+                        <Input
+                          type="password"
+                          placeholder="New Password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                        />
+                        <Input
+                          type="password"
+                          placeholder="Confirm New Password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                        />
+                        {passwordError && <p className="text-red-500 text-sm">{passwordError}</p>}
+                      </div>
+
+                      <div className="flex justify-end space-x-2 mt-4">
+                        <Button variant="outline" onClick={() => setIsChangingPassword(false)}>
+                          Cancel
+                        </Button>
+                        <Button onClick={handlePasswordChange}>Submit</Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+
+                {/* Logout Button */}
+                <Button className="bg-red-500 text-white w-full mt-3" onClick={handleLogout}>
+                  Logout
+                </Button>
+              </DialogContent>
+            </Dialog>
+          </>
+        ) : (
+          <LoginSignupModal />
+        )}
+      </nav>
+
+      {/* Success Modal for Password Change */}
+      <Dialog open={isPasswordChanged} onOpenChange={setIsPasswordChanged}>
+        <DialogContent className="p-6 w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Password Changed Successfully</DialogTitle>
+          </DialogHeader>
+          <p>You will be redirected to the home page.</p>
+        </DialogContent>
+      </Dialog>
+    </header>
+  );
 }
