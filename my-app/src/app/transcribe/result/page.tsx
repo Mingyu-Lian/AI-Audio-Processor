@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import AudioPlayer from "@/components/AudioPlayer";
 import { mockTranscriptionData } from "../mockTranscriptionData";
 
 function formatTime(seconds: number): string {
@@ -14,6 +15,8 @@ function formatTime(seconds: number): string {
     .padStart(2, "0");
   return `${mins}:${secs}`;
 }
+
+
 
 export default function TranscriptionPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -41,7 +44,8 @@ export default function TranscriptionPage() {
       setActiveIndex(index);
     }
   }, [currentTime]);
-
+  
+  
   const handleSegmentClick = (start: number) => {
     if (audioRef.current) {
       audioRef.current.currentTime = start;
@@ -57,10 +61,20 @@ export default function TranscriptionPage() {
         <h2 className="text-3xl font-bold mb-6">Transcription Result</h2>
 
         {/* 音频播放器 */}
-        <audio ref={audioRef} controls className="w-full mb-6">
+        {/* <audio ref={audioRef} controls className="w-full mb-6">
+        
           <source src="/audio/sample.mp3" type="audio/mpeg" />
           Your browser does not support audio playback.
         </audio>
+         */}
+         
+         <AudioPlayer
+            ref={audioRef}
+            audioUrl="/audio/sample.mp3"
+            currentTime={currentTime}
+            onTimeUpdate={setCurrentTime}
+          />
+
 
         {/* 转录段落列表 */}
         <div className="w-full border rounded-md overflow-hidden">
@@ -68,7 +82,7 @@ export default function TranscriptionPage() {
             <div className="col-span-3">Time</div>
             <div className="col-span-9">Transcript</div>
           </div>
-
+          {/* iterate over the transcription data */}
           {mockTranscriptionData.map((segment, index) => (
             <div
               key={index}

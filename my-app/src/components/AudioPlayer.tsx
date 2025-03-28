@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useImperativeHandle, useRef, forwardRef } from "react";
 
 type Props = {
   audioUrl: string;
@@ -8,31 +8,47 @@ type Props = {
   onTimeUpdate: (time: number) => void;
 };
 
-export default function AudioPlayer({ audioUrl, currentTime, onTimeUpdate }: Props) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+const AudioPlayer = forwardRef<HTMLAudioElement, Props>(
+  ({ audioUrl, currentTime, onTimeUpdate }, ref) => {
+    const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    const handleTimeUpdate = () => {
-      if (audioRef.current) {
-        onTimeUpdate(audioRef.current.currentTime);
+    // 暴露内部 audioRef 给外部页面
+    useImperativeHandle(ref, () => audioRef.current as HTMLAudioElement);
+
+    useEffect(() => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      const handleTimeUpdate = () => {
+        onTimeUpdate(audio.currentTime);
+      };
+
+      audio.addEventListener("timeupdate", handleTimeUpdate);
+      return () => {
+        audio.removeEventListener("timeupdate", handleTimeUpdate);
+      };
+    }, [onTimeUpdate]);
+
+    useEffect(() => {
+      const audio = audioRef.current;
+      if (!audio) return;
+
+      if (Math.abs(audio.currentTime - currentTime) > 0.5) {
+        audio.currentTime = currentTime;
       }
-    };
-    audioRef.current?.addEventListener("timeupdate", handleTimeUpdate);
-    return () => {
-      audioRef.current?.removeEventListener("timeupdate", handleTimeUpdate);
-    };
-  }, [onTimeUpdate]);
+    }, [currentTime]);
 
-  useEffect(() => {
-    if (audioRef.current && Math.abs(audioRef.current.currentTime - currentTime) > 0.5) {
-      audioRef.current.currentTime = currentTime;
-    }
-  }, [currentTime]);
+    return (
+      <audio
+        ref={audioRef}
+        controls
+        className="w-full mb-6"
+      >
+        <source src={audioUrl} type="audio/mpeg" />
+        Your browser does not support audio playback.
+      </audio>
+    );
+  }
+);
 
-  return (
-    <audio controls ref={audioRef} className="w-full">
-      <source src={audioUrl} type="audio/mpeg" />
-      Your browser does not support audio playback.
-    </audio>
-  );
-}
+export default AudioPlayer;
