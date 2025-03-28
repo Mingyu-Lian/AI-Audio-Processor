@@ -1,4 +1,5 @@
-// mockTranscriptionData.ts
+// app/transcribe/mockTranscriptionData.ts
+
 export const mockTranscriptionData = [
     {
       start: 0.0,
@@ -9,7 +10,7 @@ export const mockTranscriptionData = [
     {
       start: 8.0,
       end: 18.0,
-      text: "Today, we'll be discussing how AI is transforming various industries...",
+      text: "Today, we'll be discussing how AI is transforming various industries..."
     },
     {
       start: 18.0,
@@ -20,8 +21,7 @@ export const mockTranscriptionData = [
     {
       start: 28.0,
       end: 39.0,
-      text: "However, we must consider the implications for privacy...",
-      tag: "Bias Alert"
-    },
+      text: "However, we must consider the implications for privacy, job displacement..."
+    }
   ];
   
