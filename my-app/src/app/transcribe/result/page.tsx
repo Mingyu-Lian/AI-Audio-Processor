@@ -1,10 +1,8 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import AudioPlayer from "@/components/AudioPlayer";
-import { useEffect, useState } from "react";
-import { mockAudioData } from "../mockAudioData";
 import { mockTranscriptionData } from "../mockTranscriptionData";
 
 function formatTime(seconds: number): string {
@@ -17,9 +15,23 @@ function formatTime(seconds: number): string {
   return `${mins}:${secs}`;
 }
 
-export default function TranscriptionResultPage() {
+export default function TranscriptionPage() {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    const handleTimeUpdate = () => {
+      if (audioRef.current) {
+        setCurrentTime(audioRef.current.currentTime);
+      }
+    };
+
+    audioRef.current?.addEventListener("timeupdate", handleTimeUpdate);
+    return () => {
+      audioRef.current?.removeEventListener("timeupdate", handleTimeUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     const index = mockTranscriptionData.findIndex(
@@ -30,41 +42,49 @@ export default function TranscriptionResultPage() {
     }
   }, [currentTime]);
 
+  const handleSegmentClick = (start: number) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = start;
+      audioRef.current.play();
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
 
-      <main className="flex flex-col items-center justify-start flex-1 p-6 w-full max-w-4xl mx-auto">
-        <h2 className="text-3xl font-bold mb-4">{mockAudioData.title}</h2>
+      <main className="flex flex-col items-center flex-1 p-6 w-full max-w-4xl mx-auto text-center">
+        <h2 className="text-3xl font-bold mb-6">Transcription Result</h2>
 
-        <AudioPlayer
-          audioUrl={mockAudioData.url}
-          currentTime={currentTime}
-          onTimeUpdate={(t) => setCurrentTime(t)}
-        />
+        {/* 音频播放器 */}
+        <audio ref={audioRef} controls className="w-full mb-6">
+          <source src="/audio/sample.mp3" type="audio/mpeg" />
+          Your browser does not support audio playback.
+        </audio>
 
-        <div className="w-full border rounded-md overflow-hidden mt-6">
+        {/* 转录段落列表 */}
+        <div className="w-full border rounded-md overflow-hidden">
           <div className="bg-gray-200 px-4 py-2 font-semibold grid grid-cols-12 text-sm">
             <div className="col-span-3">Time</div>
             <div className="col-span-9">Transcript</div>
           </div>
 
-          {mockTranscriptionData.map((seg, idx) => (
+          {mockTranscriptionData.map((segment, index) => (
             <div
-              key={idx}
-              className={`grid grid-cols-12 px-4 py-3 text-sm border-t transition cursor-pointer ${
-                idx === activeIndex ? "bg-yellow-100" : "hover:bg-gray-50"
+              key={index}
+              onClick={() => handleSegmentClick(segment.start)}
+              className={`grid grid-cols-12 border-t px-4 py-3 transition text-left cursor-pointer ${
+                index === activeIndex ? "bg-yellow-100" : "hover:bg-gray-50"
               }`}
-              onClick={() => setCurrentTime(seg.start)}
             >
-              <div className="col-span-3 font-mono text-gray-500">
-                {formatTime(seg.start)} - {formatTime(seg.end)}
+              <div className="col-span-3 font-mono text-gray-600 text-sm">
+                {formatTime(segment.start)} - {formatTime(segment.end)}
               </div>
-              <div className="col-span-9 relative text-gray-800">
-                {seg.text}
-                {seg.tag && (
+              <div className="col-span-9 text-gray-800 text-sm relative">
+                {segment.text}
+                {segment.tag && (
                   <span className="absolute top-0 right-0 bg-yellow-200 text-yellow-800 text-xs px-2 py-0.5 rounded-full border border-yellow-300">
-                    {seg.tag}
+                    {segment.tag}
                   </span>
                 )}
               </div>
