@@ -32,7 +32,7 @@ export default function LoginSignupModal() {
       }
   
       if (forgotPassword) {
-        setSuccessMessage("Forget password? Please send a email to 12345@sentriwise.com using the login Email.");
+        setSuccessMessage("Forget password? Please send a email to support@sentriwise.com.au using the login Email.");
         return;
       }
   

@@ -38,27 +38,34 @@ export default function Header() {
   };
 
   // Convert credits to Hours & Minutes
-  const formatCreditTime = (credits: number) => {
-    const hours = Math.floor(credits / 60);
-    const minutes = credits % 60;
+  // const formatCreditTime = (credits: number) => {
+  //   const hours = Math.floor(credits / 60);
+  //   const minutes = credits % 60;
   
-    const hoursText = hours === 1 ? "1 Hour" : `${hours} Hours`;
-    const minutesText = minutes === 1 ? "1 Min" : `${minutes} Mins`;
+  //   const hoursText = hours === 1 ? "1 Hour" : `${hours} Hours`;
+  //   const minutesText = minutes === 1 ? "1 Min" : `${minutes} Mins`;
   
-    if (hours > 0 && minutes > 0) {
-      return `${hoursText} ${minutesText}`;
-    } else if (hours > 0) {
-      return hoursText;
-    } else {
-      return minutesText;
-    }
-  };
+  //   if (hours > 0 && minutes > 0) {
+  //     return `${hoursText} ${minutesText}`;
+  //   } else if (hours > 0) {
+  //     return hoursText;
+  //   } else {
+  //     return minutesText;
+  //   }
+  // };
 
   // formatCreditTime(125) → "2 Hours 5 Mins"
   // formatCreditTime(61) → "1 Hour 1 Min"
   // formatCreditTime(60) → "1 Hour"
   // formatCreditTime(1) → "1 Min"
   // formatCreditTime(0) → "0 Mins"
+
+
+// Convert credits to Mins
+  const formatCreditTime = (credits: number) => {
+    return `${credits} Mins`;
+  };
+
 
   // Password Change Handlers
   const handlePasswordChange = async () => {
@@ -129,7 +136,7 @@ export default function Header() {
           <>
             {/* Credit Time Display */}
             <span className="text-sm md:text-base font-semibold text-gray-700">
-              ⏳ {formatCreditTime(user.credits)}
+               {`${formatCreditTime(user.credits)} remaining` }
             </span>
 
             {/* Profile Dropdown */}
@@ -147,7 +154,7 @@ export default function Header() {
                 <div className="mt-4 space-y-2">
                   <p className="text-gray-600"><strong>Email:</strong> {user.email}</p>
                   <p className="text-gray-600"><strong>Credits:</strong> {user.credits}</p>
-                  <p className="text-gray-600"><strong>Time Left:</strong> {formatCreditTime(user.credits)}</p>
+                  <p className="text-gray-600"><strong>Time Remain:</strong> {formatCreditTime(user.credits)}</p>
                 </div>
 
                 {/* Add Credit & Change Password Buttons */}
