@@ -327,7 +327,7 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="center" className="w-16">
-            {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+            {[0.5, 1, 1.5, 2, 5, 10].map((rate) => (
               <DropdownMenuItem key={rate} onClick={() => handleRateChange(rate)} className="text-xs justify-center">
                 {rate}x
               </DropdownMenuItem>
