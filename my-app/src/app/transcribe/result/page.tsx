@@ -1,113 +1,144 @@
-"use client";
+"use client"
 
-import { useEffect, useRef, useState } from "react";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import AudioPlayer from "@/components/AudioPlayer";
-import { mockTranscriptionData } from "../mockTranscriptionData";
+import { useEffect, useRef, useState } from "react"
+import Header from "@/components/Header"
+import Footer from "@/components/Footer"
+import VerticalAudioPlayer from "@/components/AudioPlayer"
+import { mockTranscriptionData } from "../mockTranscriptionData"
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60)
     .toString()
-    .padStart(2, "0");
+    .padStart(2, "0")
   const secs = Math.floor(seconds % 60)
     .toString()
-    .padStart(2, "0");
-  return `${mins}:${secs}`;
+    .padStart(2, "0")
+  return `${mins}:${secs}`
 }
 
-
-
 export default function TranscriptionPage() {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const segmentRefs = useRef<(HTMLDivElement | null)[]>([])
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Check if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+
+    return () => {
+      window.removeEventListener("resize", checkMobile)
+    }
+  }, [])
 
   useEffect(() => {
     const handleTimeUpdate = () => {
       if (audioRef.current) {
-        setCurrentTime(audioRef.current.currentTime);
+        setCurrentTime(audioRef.current.currentTime)
       }
-    };
+    }
 
-    audioRef.current?.addEventListener("timeupdate", handleTimeUpdate);
+    audioRef.current?.addEventListener("timeupdate", handleTimeUpdate)
     return () => {
-      audioRef.current?.removeEventListener("timeupdate", handleTimeUpdate);
-    };
-  }, []);
+      audioRef.current?.removeEventListener("timeupdate", handleTimeUpdate)
+    }
+  }, [])
 
   useEffect(() => {
-    const index = mockTranscriptionData.findIndex(
-      (seg) => currentTime >= seg.start && currentTime < seg.end
-    );
-    if (index !== -1) {
-      setActiveIndex(index);
+    const index = mockTranscriptionData.findIndex((seg) => currentTime >= seg.start && currentTime < seg.end)
+    if (index !== -1 && index !== activeIndex) {
+      setActiveIndex(index)
+      const el = segmentRefs.current[index]
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" })
+      }
     }
-  }, [currentTime]);
-  
-  
+  }, [currentTime, activeIndex])
+
   const handleSegmentClick = (start: number) => {
     if (audioRef.current) {
-      audioRef.current.currentTime = start;
-      audioRef.current.play();
+      audioRef.current.currentTime = start
+      audioRef.current.play()
     }
-  };
+  }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <Header />
 
-      <main className="flex flex-col items-center flex-1 p-6 w-full max-w-4xl mx-auto text-center">
-        <h2 className="text-3xl font-bold mb-6">Transcription Result</h2>
+      <main className="flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 pb-12 pt-6 relative">
+        {/* Title Section */}
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Transcription Result</h1>
+          <p className="text-gray-600 mt-2">Audio transcription with timestamps</p>
+        </div>
 
-        {/* 音频播放器 */}
-        {/* <audio ref={audioRef} controls className="w-full mb-6">
-        
-          <source src="/audio/sample.mp3" type="audio/mpeg" />
-          Your browser does not support audio playback.
-        </audio>
-         */}
-         
-         <AudioPlayer
+        {/* Main Content Area - Adjusted for the fixed audio player */}
+        <div className={`max-w-5xl mx-auto ${isMobile ? "pr-4 sm:pr-16" : "pr-0 md:pr-16"}`}>
+          {/* Transcript Container - No fixed height or scrollbar */}
+          <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+            {/* Header Row */}
+            <div className="bg-gray-100 px-4 py-3 border-b border-gray-200 grid grid-cols-12 gap-2">
+              <div className="col-span-3 font-medium text-gray-700 text-sm">Timestamp</div>
+              <div className="col-span-9 font-medium text-gray-700 text-sm">Transcript</div>
+            </div>
+
+            {/* Full list of transcripts - No scrollbar */}
+            <div>
+              {mockTranscriptionData.map((segment, index) => (
+                <div
+                  key={index}
+                  ref={(el: HTMLDivElement | null) => {
+                    segmentRefs.current[index] = el
+                  }}
+                  onClick={() => handleSegmentClick(segment.start)}
+                  className={`grid grid-cols-12 gap-2 border-b border-gray-100 px-4 py-3 transition cursor-pointer ${
+                    index === activeIndex ? "bg-yellow-50 border-l-4 border-l-yellow-400" : "hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="col-span-3 font-mono text-gray-600 text-xs sm:text-sm font-semibold">
+                    {formatTime(segment.start)} - {formatTime(segment.end)}
+                  </div>
+                  <div className={`col-span-9 text-gray-800 ${isMobile ? "text-xs" : "text-sm sm:text-base"}`}>
+                    {segment.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Fixed Audio Player - Positioned lower to avoid header overlap */}
+        <div className={`${isMobile ? "hidden" : ""}`}>
+          <VerticalAudioPlayer
             ref={audioRef}
             audioUrl="/audio/sample.mp3"
             currentTime={currentTime}
             onTimeUpdate={setCurrentTime}
           />
-
-
-        {/* 转录段落列表 */}
-        <div className="w-full border rounded-md overflow-hidden">
-          <div className="bg-gray-200 px-4 py-2 font-semibold grid grid-cols-12 text-sm">
-            <div className="col-span-3">Time</div>
-            <div className="col-span-9">Transcript</div>
-          </div>
-          {/* iterate over the transcription data */}
-          {mockTranscriptionData.map((segment, index) => (
-            <div
-              key={index}
-              onClick={() => handleSegmentClick(segment.start)}
-              className={`grid grid-cols-12 border-t px-4 py-3 transition text-left cursor-pointer ${
-                index === activeIndex ? "bg-yellow-100" : "hover:bg-gray-50"
-              }`}
-            >
-              <div className="col-span-3 font-mono text-gray-600 text-sm">
-                {formatTime(segment.start)} - {formatTime(segment.end)}
-              </div>
-              <div className="col-span-9 text-gray-800 text-sm relative">
-                {segment.text}
-                {segment.tag && (
-                  <span className="absolute top-0 right-0 bg-yellow-200 text-yellow-800 text-xs px-2 py-0.5 rounded-full border border-yellow-300">
-                    {segment.tag}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
         </div>
+
+        {/* Mobile Audio Player - Bottom fixed position */}
+        {isMobile && (
+          <div className="fixed bottom-16 right-0 z-50">
+            <VerticalAudioPlayer
+              ref={audioRef}
+              audioUrl="/audio/sample.mp3"
+              currentTime={currentTime}
+              onTimeUpdate={setCurrentTime}
+            />
+          </div>
+        )}
       </main>
 
       <Footer />
     </div>
-  );
+  )
 }
+

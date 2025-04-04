@@ -1,54 +1,305 @@
-"use client";
+"use client"
 
-import { useEffect, useImperativeHandle, useRef, forwardRef } from "react";
+import type React from "react"
+
+import { useEffect, useImperativeHandle, useRef, forwardRef, useState } from "react"
+import { Slider } from "@/components/ui/slider"
+import { Button } from "@/components/ui/button"
+import { Volume2, VolumeX, Play, Pause } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 type Props = {
-  audioUrl: string;
-  currentTime: number;
-  onTimeUpdate: (time: number) => void;
-};
+  audioUrl: string
+  currentTime: number
+  onTimeUpdate: (time: number) => void
+  isMobile?: boolean
+}
 
-const AudioPlayer = forwardRef<HTMLAudioElement, Props>(
-  ({ audioUrl, currentTime, onTimeUpdate }, ref) => {
-    const audioRef = useRef<HTMLAudioElement | null>(null);
+const VerticalAudioPlayer = forwardRef<HTMLAudioElement, Props>(
+  ({ audioUrl, currentTime, onTimeUpdate, isMobile = false }, ref) => {
+    const audioRef = useRef<HTMLAudioElement | null>(null)
+    const progressTrackRef = useRef<HTMLDivElement>(null)
+    const [duration, setDuration] = useState(0)
+    const [volume, setVolume] = useState(1)
+    const [playbackRate, setPlaybackRate] = useState(1)
+    const [isPlaying, setIsPlaying] = useState(false)
+    const [isMuted, setIsMuted] = useState(false)
+    const [isDragging, setIsDragging] = useState(false)
+    const [isVolumeOpen, setIsVolumeOpen] = useState(false)
 
-    // 暴露内部 audioRef 给外部页面
-    useImperativeHandle(ref, () => audioRef.current as HTMLAudioElement);
+    // Expose internal audio element ref
+    useImperativeHandle(ref, () => audioRef.current as HTMLAudioElement)
 
+    // Update currentTime in parent
     useEffect(() => {
-      const audio = audioRef.current;
-      if (!audio) return;
-
+      const audio = audioRef.current
+      if (!audio) return
       const handleTimeUpdate = () => {
-        onTimeUpdate(audio.currentTime);
-      };
-
-      audio.addEventListener("timeupdate", handleTimeUpdate);
-      return () => {
-        audio.removeEventListener("timeupdate", handleTimeUpdate);
-      };
-    }, [onTimeUpdate]);
-
-    useEffect(() => {
-      const audio = audioRef.current;
-      if (!audio) return;
-
-      if (Math.abs(audio.currentTime - currentTime) > 0.5) {
-        audio.currentTime = currentTime;
+        onTimeUpdate(audio.currentTime)
       }
-    }, [currentTime]);
+      audio.addEventListener("timeupdate", handleTimeUpdate)
+      return () => audio.removeEventListener("timeupdate", handleTimeUpdate)
+    }, [onTimeUpdate])
+
+    // Sync external currentTime to audio element
+    useEffect(() => {
+      const audio = audioRef.current
+      if (!audio) return
+      if (Math.abs(audio.currentTime - currentTime) > 0.5) {
+        audio.currentTime = currentTime
+      }
+    }, [currentTime])
+
+    // Set duration when metadata loads
+    useEffect(() => {
+      const audio = audioRef.current
+      if (!audio) return
+      const handleLoadedMetadata = () => {
+        setDuration(audio.duration)
+      }
+      audio.addEventListener("loadedmetadata", handleLoadedMetadata)
+      return () => audio.removeEventListener("loadedmetadata", handleLoadedMetadata)
+    }, [])
+
+    // Play/Pause toggle
+    const togglePlay = () => {
+      const audio = audioRef.current
+      if (!audio) return
+      if (audio.paused) {
+        audio
+          .play()
+          .then(() => {
+            setIsPlaying(true)
+          })
+          .catch((error) => {
+            console.error("Error playing audio:", error)
+          })
+      } else {
+        audio.pause()
+        setIsPlaying(false)
+      }
+    }
+
+    // Progress slider handler - inverted for top-to-bottom progress
+    const handleProgressChange = (value: number[]) => {
+      // Invert the value to make it go from top to bottom
+      const invertedValue = duration - value[0]
+      if (audioRef.current) {
+        audioRef.current.currentTime = invertedValue
+      }
+      onTimeUpdate(invertedValue)
+    }
+
+    // Get the inverted slider value for display
+    const getInvertedSliderValue = () => {
+      return [duration - currentTime]
+    }
+
+    // Handle direct track click
+    const handleTrackClick = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!progressTrackRef.current || !duration) return
+
+      const rect = progressTrackRef.current.getBoundingClientRect()
+      const clickPosition = (e.clientY - rect.top) / rect.height
+      const newTime = clickPosition * duration
+
+      if (audioRef.current) {
+        audioRef.current.currentTime = newTime
+      }
+      onTimeUpdate(newTime)
+    }
+
+    // Volume slider handler
+    const handleVolumeChange = (value: number[]) => {
+      const newVolume = value[0]
+      setVolume(newVolume)
+      if (audioRef.current) {
+        audioRef.current.volume = newVolume
+        setIsMuted(newVolume === 0)
+      }
+    }
+
+    // Toggle mute
+    const toggleMute = () => {
+      if (audioRef.current) {
+        if (isMuted) {
+          audioRef.current.volume = volume || 1
+          setIsMuted(false)
+        } else {
+          audioRef.current.volume = 0
+          setIsMuted(true)
+        }
+      }
+    }
+
+    // Playback rate handler
+    const handleRateChange = (rate: number) => {
+      setPlaybackRate(rate)
+      if (audioRef.current) {
+        audioRef.current.playbackRate = rate
+      }
+    }
+
+    // Format seconds to mm:ss
+    const formatTime = (seconds: number): string => {
+      const mins = Math.floor(seconds / 60)
+        .toString()
+        .padStart(2, "0")
+      const secs = Math.floor(seconds % 60)
+        .toString()
+        .padStart(2, "0")
+      return `${mins}:${secs}`
+    }
+
+    // Calculate progress percentage for custom track styling
+    const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0
+
+    // Determine sizes based on mobile state
+    const containerWidth = isMobile ? "w-10" : "w-12"
+    const buttonSize = isMobile ? "h-6 w-6" : "h-8 w-8"
+    const iconSize = isMobile ? "h-3 w-3" : "h-4 w-4"
+    const speedButtonSize = isMobile ? "h-5 w-7" : "h-6 w-8"
+    const speedTextSize = isMobile ? "text-[10px]" : "text-xs"
+    const timeTextSize = isMobile ? "text-[8px]" : "text-[10px]"
+    const trackWidth = isMobile ? "w-1.5" : "w-2"
+    const handleSize = isMobile ? "w-3.5 h-3.5" : "w-4 h-4"
+    const handleOffset = isMobile ? "7px" : "8px"
 
     return (
-      <audio
-        ref={audioRef}
-        controls
-        className="w-full mb-6"
+      <div
+        className={`fixed right-0 top-20 bottom-16 flex flex-col items-center py-4 px-1 bg-transparent ${containerWidth} z-40 md:z-40 sm:z-0`}
       >
-        <source src={audioUrl} type="audio/mpeg" />
-        Your browser does not support audio playback.
-      </audio>
-    );
-  }
-);
+        {/* Hidden audio element */}
+        <audio ref={audioRef} src={audioUrl} className="hidden" />
 
-export default AudioPlayer;
+        {/* Time display - Current time at top */}
+        <div className={`${timeTextSize} font-mono mb-2 text-center`}>{formatTime(currentTime)}</div>
+
+        {/* Play/Pause button */}
+        <Button
+          onClick={togglePlay}
+          size="icon"
+          variant="ghost"
+          className={`${buttonSize} rounded-full mb-2 bg-gray-200/80 hover:bg-gray-300/80`}
+        >
+          {isPlaying ? <Pause className={iconSize} /> : <Play className={`${iconSize} ml-0.5`} />}
+        </Button>
+
+        {/* Custom scrollbar-like progress track */}
+        <div
+          className="relative flex-grow w-full flex justify-center my-2"
+          ref={progressTrackRef}
+          onClick={handleTrackClick}
+        >
+          <div className={`relative ${trackWidth} bg-gray-200/80 rounded-full overflow-hidden`}>
+            {/* Track background */}
+            <div className="absolute top-0 left-0 right-0 bottom-0 rounded-full"></div>
+
+            {/* Progress indicator - moves from top to bottom */}
+            <div
+              className="absolute top-0 left-0 right-0 bg-gray-400 rounded-full"
+              style={{ height: `${progressPercentage}%` }}
+            ></div>
+
+            {/* Progress handle/thumb - Round point with no white space */}
+            <div
+              className={`absolute left-1/2 ${handleSize} bg-gray-500 rounded-full -translate-x-1/2 transform transition-all ${isDragging ? "scale-110" : ""}`}
+              style={{
+                top: `${progressPercentage}%`,
+                boxShadow: "0 0 0 2px #6b7280",
+              }}
+              onMouseDown={() => setIsDragging(true)}
+              onMouseUp={() => setIsDragging(false)}
+            ></div>
+
+            {/* Invisible slider for interaction */}
+            <Slider
+              value={getInvertedSliderValue()}
+              min={0}
+              max={duration || 100}
+              step={0.1}
+              onValueChange={handleProgressChange}
+              orientation="vertical"
+              className={`h-full ${trackWidth} absolute inset-0 opacity-0`}
+              onValueCommit={() => setIsDragging(false)}
+            />
+          </div>
+        </div>
+
+        {/* Volume control with custom styling to fix handle position */}
+        <Popover open={isVolumeOpen} onOpenChange={setIsVolumeOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className={`${buttonSize} rounded-full mb-2 bg-gray-200/80 hover:bg-gray-300/80`}
+            >
+              {isMuted || volume === 0 ? <VolumeX className={iconSize} /> : <Volume2 className={iconSize} />}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className={`${isMobile ? "w-12" : "w-14"} p-3 flex items-center justify-center bg-white dark:bg-gray-800 shadow-lg border border-gray-200`}
+            side="left"
+            align="center"
+            sideOffset={5}
+          >
+            <div className="h-[120px] w-full flex justify-center items-center">
+              {/* Custom volume slider with fixed styling */}
+              <div className={`relative h-full ${trackWidth} bg-gray-200 rounded-full overflow-hidden`}>
+                <div
+                  className="absolute bottom-0 left-0 right-0 bg-gray-400 rounded-full"
+                  style={{ height: `${volume * 100}%` }}
+                ></div>
+                <div
+                  className={`absolute left-1/2 ${handleSize} bg-gray-500 rounded-full -translate-x-1/2 transform`}
+                  style={{
+                    bottom: `calc(${volume * 100}% - ${handleOffset})`,
+                    boxShadow: "0 0 0 2px #6b7280",
+                  }}
+                ></div>
+                <Slider
+                  value={[volume]}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onValueChange={handleVolumeChange}
+                  orientation="vertical"
+                  className={`h-full ${trackWidth} absolute inset-0 opacity-0`}
+                />
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+
+        {/* Playback Speed Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`${speedTextSize} ${speedButtonSize} rounded-sm bg-gray-200/80 hover:bg-gray-300/80`}
+            >
+              {playbackRate}x
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="center" className="w-16">
+            {[0.5, 0.75, 1, 1.25, 1.5, 2].map((rate) => (
+              <DropdownMenuItem key={rate} onClick={() => handleRateChange(rate)} className="text-xs justify-center">
+                {rate}x
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Duration display - Total duration at bottom */}
+        <div className={`${timeTextSize} font-mono mt-2 text-center`}>{formatTime(duration)}</div>
+      </div>
+    )
+  },
+)
+
+VerticalAudioPlayer.displayName = "VerticalAudioPlayer"
+
+export default VerticalAudioPlayer
+
