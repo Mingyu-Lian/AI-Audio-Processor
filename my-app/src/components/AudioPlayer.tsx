@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useImperativeHandle, useRef, forwardRef, useState } from "react"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
@@ -16,10 +15,11 @@ type Props = {
   isMobile?: boolean
 }
 
-const VerticalAudioPlayer = forwardRef<HTMLAudioElement, Props>(
+const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
   ({ audioUrl, currentTime, onTimeUpdate, isMobile = false }, ref) => {
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const progressTrackRef = useRef<HTMLDivElement>(null)
+    const playerRef = useRef<HTMLDivElement>(null)
     const [duration, setDuration] = useState(0)
     const [volume, setVolume] = useState(1)
     const [playbackRate, setPlaybackRate] = useState(1)
@@ -28,8 +28,46 @@ const VerticalAudioPlayer = forwardRef<HTMLAudioElement, Props>(
     const [isDragging, setIsDragging] = useState(false)
     const [isVolumeOpen, setIsVolumeOpen] = useState(false)
 
+    // Dynamic positioning states
+    const [headerVisible, setHeaderVisible] = useState(true)
+    const [footerVisible, setFooterVisible] = useState(false)
+    const [topOffset, setTopOffset] = useState("80px") // Default top offset when header is visible
+    const [bottomOffset, setBottomOffset] = useState("64px") // Default bottom offset when footer is visible
+
     // Expose internal audio element ref
     useImperativeHandle(ref, () => audioRef.current as HTMLAudioElement)
+
+    // Set up intersection observers for header and footer
+    useEffect(() => {
+      const headerElement = document.querySelector("header")
+      const footerElement = document.querySelector("footer")
+
+      if (!headerElement || !footerElement) return
+
+      const headerObserver = new IntersectionObserver(
+        ([entry]) => {
+          setHeaderVisible(entry.isIntersecting)
+          setTopOffset(entry.isIntersecting ? "80px" : "16px")
+        },
+        { threshold: 0.1 },
+      )
+
+      const footerObserver = new IntersectionObserver(
+        ([entry]) => {
+          setFooterVisible(entry.isIntersecting)
+          setBottomOffset(entry.isIntersecting ? "64px" : "16px")
+        },
+        { threshold: 0.1 },
+      )
+
+      headerObserver.observe(headerElement)
+      footerObserver.observe(footerElement)
+
+      return () => {
+        headerObserver.disconnect()
+        footerObserver.disconnect()
+      }
+    }, [])
 
     // Update currentTime in parent
     useEffect(() => {
@@ -168,7 +206,12 @@ const VerticalAudioPlayer = forwardRef<HTMLAudioElement, Props>(
 
     return (
       <div
-        className={`fixed right-0 top-20 bottom-16 flex flex-col items-center py-4 px-1 bg-transparent ${containerWidth} z-40 md:z-40 sm:z-0`}
+        ref={playerRef}
+        className={`fixed right-0 flex flex-col items-center py-4 px-1 bg-transparent ${containerWidth} z-40 transition-all duration-300`}
+        style={{
+          top: topOffset,
+          bottom: bottomOffset,
+        }}
       >
         {/* Hidden audio element */}
         <audio ref={audioRef} src={audioUrl} className="hidden" />
@@ -299,7 +342,7 @@ const VerticalAudioPlayer = forwardRef<HTMLAudioElement, Props>(
   },
 )
 
-VerticalAudioPlayer.displayName = "VerticalAudioPlayer"
+DynamicAudioPlayer.displayName = "DynamicAudioPlayer"
 
-export default VerticalAudioPlayer
+export default DynamicAudioPlayer
 

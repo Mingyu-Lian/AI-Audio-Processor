@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
-import VerticalAudioPlayer from "@/components/AudioPlayer"
+import DynamicAudioPlayer from "@/components/AudioPlayer"
 import { mockTranscriptionData } from "../mockTranscriptionData"
 
 function formatTime(seconds: number): string {
@@ -114,24 +114,26 @@ export default function TranscriptionPage() {
           </div>
         </div>
 
-        {/* Fixed Audio Player - Positioned lower to avoid header overlap */}
+        {/* Dynamic Audio Player that adjusts based on header/footer visibility */}
         <div className={`${isMobile ? "hidden" : ""}`}>
-          <VerticalAudioPlayer
+          <DynamicAudioPlayer
             ref={audioRef}
             audioUrl="/audio/sample.mp3"
             currentTime={currentTime}
             onTimeUpdate={setCurrentTime}
+            isMobile={false}
           />
         </div>
 
         {/* Mobile Audio Player - Bottom fixed position */}
         {isMobile && (
           <div className="fixed bottom-16 right-0 z-50">
-            <VerticalAudioPlayer
+            <DynamicAudioPlayer
               ref={audioRef}
               audioUrl="/audio/sample.mp3"
               currentTime={currentTime}
               onTimeUpdate={setCurrentTime}
+              isMobile={true}
             />
           </div>
         )}
