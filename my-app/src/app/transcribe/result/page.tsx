@@ -63,7 +63,9 @@ export default function TranscriptionPage() {
 
   const handleSegmentClick = (start: number) => {
     if (audioRef.current) {
+      // Update both the audio element and the state
       audioRef.current.currentTime = start
+      setCurrentTime(start)
       audioRef.current.play()
     }
   }
@@ -119,6 +121,7 @@ export default function TranscriptionPage() {
           <DynamicAudioPlayer
             ref={audioRef}
             audioUrl="/audio/sample.mp3"
+            //audioUrl={`/audio/sample.mp3?v=${Date.now()}`}
             currentTime={currentTime}
             onTimeUpdate={setCurrentTime}
             isMobile={false}
@@ -143,4 +146,3 @@ export default function TranscriptionPage() {
     </div>
   )
 }
-

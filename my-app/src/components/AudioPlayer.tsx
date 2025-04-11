@@ -70,24 +70,36 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
     }, [])
 
     // Update currentTime in parent
-    useEffect(() => {
-      const audio = audioRef.current
-      if (!audio) return
-      const handleTimeUpdate = () => {
-        onTimeUpdate(audio.currentTime)
-      }
-      audio.addEventListener("timeupdate", handleTimeUpdate)
-      return () => audio.removeEventListener("timeupdate", handleTimeUpdate)
-    }, [onTimeUpdate])
-
     // Sync external currentTime to audio element
     useEffect(() => {
       const audio = audioRef.current
       if (!audio) return
+
+      // Only seek if time difference is significant (from transcript click)
       if (Math.abs(audio.currentTime - currentTime) > 0.5) {
         audio.currentTime = currentTime
+
+        // If we're seeking and audio is already playing, ensure it continues playing
+        if (!audio.paused) {
+          audio.play().catch((error) => console.error("Error playing audio:", error))
+        }
       }
     }, [currentTime])
+
+    // Update currentTime in parent
+    useEffect(() => {
+      const audio = audioRef.current
+      if (!audio) return
+
+      const handleTimeUpdate = () => {
+        onTimeUpdate(audio.currentTime) // updates parent state
+      }
+
+      audio.addEventListener("timeupdate", handleTimeUpdate)
+      return () => {
+        audio.removeEventListener("timeupdate", handleTimeUpdate)
+      }
+    }, [onTimeUpdate])
 
     // Set duration when metadata loads
     useEffect(() => {
@@ -98,6 +110,23 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
       }
       audio.addEventListener("loadedmetadata", handleLoadedMetadata)
       return () => audio.removeEventListener("loadedmetadata", handleLoadedMetadata)
+    }, [])
+
+    // Listen for play/pause events to update isPlaying state
+    useEffect(() => {
+      const audio = audioRef.current
+      if (!audio) return
+
+      const handlePlay = () => setIsPlaying(true)
+      const handlePause = () => setIsPlaying(false)
+
+      audio.addEventListener("play", handlePlay)
+      audio.addEventListener("pause", handlePause)
+
+      return () => {
+        audio.removeEventListener("play", handlePlay)
+        audio.removeEventListener("pause", handlePause)
+      }
     }, [])
 
     // Play/Pause toggle
@@ -117,6 +146,9 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
         audio.pause()
         setIsPlaying(false)
       }
+
+      // Ensure isPlaying state is always in sync with actual audio state
+      setIsPlaying(!audio.paused)
     }
 
     // Progress slider handler - inverted for top-to-bottom progress
@@ -145,7 +177,6 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
       if (audioRef.current) {
         audioRef.current.currentTime = newTime
       }
-      onTimeUpdate(newTime)
     }
 
     // Volume slider handler
@@ -345,4 +376,3 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
 DynamicAudioPlayer.displayName = "DynamicAudioPlayer"
 
 export default DynamicAudioPlayer
-
