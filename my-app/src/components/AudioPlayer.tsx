@@ -34,6 +34,12 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
     const [topOffset, setTopOffset] = useState("80px") // Default top offset when header is visible
     const [bottomOffset, setBottomOffset] = useState("64px") // Default bottom offset when footer is visible
 
+    const [sliderValue, setSliderValue] = useState<number[]>([duration - currentTime])
+
+    useEffect(() => {
+      setSliderValue([duration - currentTime])
+    }, [currentTime, duration])
+   
     // Expose internal audio element ref
     useImperativeHandle(ref, () => audioRef.current as HTMLAudioElement)
 
@@ -92,7 +98,7 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
       if (!audio) return;
     
       const handleTimeUpdate = () => {
-        // Update parent state
+        // Update parent state  
         onTimeUpdate(audio.currentTime);
         
         // Explicitly update slider position for the invisible slider
@@ -296,7 +302,7 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
 
             {/* Invisible slider for interaction */}
             <Slider
-              value={getInvertedSliderValue()}
+              value={sliderValue}
               min={0}
               max={duration || 100}
               step={0.1}

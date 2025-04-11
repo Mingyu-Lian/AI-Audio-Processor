@@ -134,29 +134,13 @@ export default function TranscriptionPage() {
         </div>
 
         {/* Dynamic Audio Player that adjusts based on header/footer visibility */}
-        <div className={`${isMobile ? "hidden" : ""}`}>
-          <DynamicAudioPlayer
-            ref={audioRef}
-            audioUrl="/audio/sample.mp3"
-            //audioUrl={`/audio/sample.mp3?v=${Date.now()}`}
-            currentTime={currentTime}
-            onTimeUpdate={setCurrentTime}
-            isMobile={false}
-          />
-        </div>
-
-        {/* Mobile Audio Player - Bottom fixed position */}
-        {isMobile && (
-          <div className="fixed bottom-16 right-0 z-50">
-            <DynamicAudioPlayer
-              ref={audioRef}
-              audioUrl="/audio/sample.mp3"
-              currentTime={currentTime}
-              onTimeUpdate={setCurrentTime}
-              isMobile={true}
-            />
-          </div>
-        )}
+        <DynamicAudioPlayer
+          ref={audioRef}
+          audioUrl="/audio/sample.mp3"
+          currentTime={currentTime}
+          onTimeUpdate={setCurrentTime}
+          isMobile={isMobile}
+        />
       </main>
 
       <Footer />
