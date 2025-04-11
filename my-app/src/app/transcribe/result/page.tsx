@@ -37,6 +37,7 @@ export default function TranscriptionPage() {
       window.removeEventListener("resize", checkMobile)
     }
   }, [])
+
   useEffect(() => {
     let timeout: NodeJS.Timeout
     const handleScroll = () => {
@@ -49,18 +50,19 @@ export default function TranscriptionPage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  useEffect(() => {
-    const handleTimeUpdate = () => {
-      if (audioRef.current) {
-        setCurrentTime(audioRef.current.currentTime)
-      }
-    }
+  // useEffect(() => {
+  //   const handleTimeUpdate = () => {
+  //     if (audioRef.current) {
+  //       setCurrentTime(audioRef.current.currentTime)
+  //     }
 
-    audioRef.current?.addEventListener("timeupdate", handleTimeUpdate)
-    return () => {
-      audioRef.current?.removeEventListener("timeupdate", handleTimeUpdate)
-    }
-  }, [])
+  //   }
+
+  //   audioRef.current?.addEventListener("timeupdate", handleTimeUpdate)
+  //   return () => {
+  //     audioRef.current?.removeEventListener("timeupdate", handleTimeUpdate)
+  //   }
+  // }, [])
 
   useEffect(() => {
     const index = mockTranscriptionData.findIndex((seg) => currentTime >= seg.start && currentTime < seg.end)

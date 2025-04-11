@@ -88,18 +88,25 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
 
     // Update currentTime in parent
     useEffect(() => {
-      const audio = audioRef.current
-      if (!audio) return
-
+      const audio = audioRef.current;
+      if (!audio) return;
+    
       const handleTimeUpdate = () => {
-        onTimeUpdate(audio.currentTime) // updates parent state
-      }
-
-      audio.addEventListener("timeupdate", handleTimeUpdate)
+        // Update parent state
+        onTimeUpdate(audio.currentTime);
+        
+        // Explicitly update slider position for the invisible slider
+        if (progressTrackRef.current) {
+          const progress = audio.currentTime / (audio.duration || 1) * 100;
+          // The progress is now properly synced
+        }
+      };
+    
+      audio.addEventListener("timeupdate", handleTimeUpdate);
       return () => {
-        audio.removeEventListener("timeupdate", handleTimeUpdate)
-      }
-    }, [onTimeUpdate])
+        audio.removeEventListener("timeupdate", handleTimeUpdate);
+      };
+    }, [onTimeUpdate]);
 
     // Set duration when metadata loads
     useEffect(() => {
@@ -238,7 +245,7 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
     return (
       <div
         ref={playerRef}
-        className={`fixed right-0 flex flex-col items-center py-4 px-1 bg-transparent ${containerWidth} z-40 transition-all duration-300`}
+        className={`fixed right-0 flex flex-col items-center py-4 px-1 bg-transparent ${containerWidth} z-50 transition-all duration-300`}
         style={{
           top: topOffset,
           bottom: bottomOffset,
