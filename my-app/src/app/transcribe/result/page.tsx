@@ -19,9 +19,10 @@ function formatTime(seconds: number): string {
 export default function TranscriptionPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
-  const [activeIndex, setActiveIndex] = useState<number | null>(null)
+  const [activeIndex, setActiveIndex] = useState(0)
   const segmentRefs = useRef<(HTMLDivElement | null)[]>([])
   const [isMobile, setIsMobile] = useState(false)
+  const [isUserScrolling, setIsUserScrolling] = useState(false)
 
   // Check if device is mobile
   useEffect(() => {
@@ -35,6 +36,17 @@ export default function TranscriptionPage() {
     return () => {
       window.removeEventListener("resize", checkMobile)
     }
+  }, [])
+  useEffect(() => {
+    let timeout: NodeJS.Timeout
+    const handleScroll = () => {
+      setIsUserScrolling(true)
+      clearTimeout(timeout)
+      timeout = setTimeout(() => setIsUserScrolling(false), 3000) // wait 3 seconds after last scroll
+    }
+  
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
   useEffect(() => {
@@ -54,12 +66,15 @@ export default function TranscriptionPage() {
     const index = mockTranscriptionData.findIndex((seg) => currentTime >= seg.start && currentTime < seg.end)
     if (index !== -1 && index !== activeIndex) {
       setActiveIndex(index)
-      const el = segmentRefs.current[index]
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" })
+  
+      if (!isUserScrolling) {
+        const el = segmentRefs.current[index]
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" })
+        }
       }
     }
-  }, [currentTime, activeIndex])
+  }, [currentTime, activeIndex, isUserScrolling])
 
   const handleSegmentClick = (start: number) => {
     if (audioRef.current) {
