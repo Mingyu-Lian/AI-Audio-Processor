@@ -23,6 +23,7 @@ export default function TranscriptionPage() {
   const segmentRefs = useRef<(HTMLDivElement | null)[]>([])
   const [isMobile, setIsMobile] = useState(false)
   const [isUserScrolling, setIsUserScrolling] = useState(false)
+  const userInteractionRef = useRef(false)
 
   // Check if device is mobile
   useEffect(() => {
@@ -38,6 +39,7 @@ export default function TranscriptionPage() {
     }
   }, [])
 
+  // Track user scrolling
   useEffect(() => {
     let timeout: NodeJS.Timeout
     const handleScroll = () => {
@@ -45,46 +47,43 @@ export default function TranscriptionPage() {
       clearTimeout(timeout)
       timeout = setTimeout(() => setIsUserScrolling(false), 3000) // wait 3 seconds after last scroll
     }
-  
+
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  // useEffect(() => {
-  //   const handleTimeUpdate = () => {
-  //     if (audioRef.current) {
-  //       setCurrentTime(audioRef.current.currentTime)
-  //     }
-
-  //   }
-
-  //   audioRef.current?.addEventListener("timeupdate", handleTimeUpdate)
-  //   return () => {
-  //     audioRef.current?.removeEventListener("timeupdate", handleTimeUpdate)
-  //   }
-  // }, [])
-
+  // Update active segment based on current time
   useEffect(() => {
     const index = mockTranscriptionData.findIndex((seg) => currentTime >= seg.start && currentTime < seg.end)
     if (index !== -1 && index !== activeIndex) {
       setActiveIndex(index)
-  
-      if (!isUserScrolling) {
+
+      if (!isUserScrolling && !userInteractionRef.current) {
         const el = segmentRefs.current[index]
         if (el) {
           el.scrollIntoView({ behavior: "smooth", block: "center" })
         }
       }
     }
+
+    // Reset user interaction flag after processing
+    userInteractionRef.current = false
   }, [currentTime, activeIndex, isUserScrolling])
 
+  // Handle segment click to jump to that point in audio
   const handleSegmentClick = (start: number) => {
+    userInteractionRef.current = true
+    setCurrentTime(start)
+
     if (audioRef.current) {
-      // Update both the audio element and the state
       audioRef.current.currentTime = start
-      setCurrentTime(start)
-      audioRef.current.play()
+      audioRef.current.play().catch((err) => console.error("Error playing audio:", err))
     }
+  }
+
+  // Handle time updates from the audio player
+  const handleTimeUpdate = (time: number) => {
+    setCurrentTime(time)
   }
 
   return (
@@ -100,7 +99,7 @@ export default function TranscriptionPage() {
 
         {/* Main Content Area - Adjusted for the fixed audio player */}
         <div className={`max-w-5xl mx-auto ${isMobile ? "pr-4 sm:pr-16" : "pr-0 md:pr-16"}`}>
-          {/* Transcript Container - No fixed height or scrollbar */}
+          {/* Transcript Container */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
             {/* Header Row */}
             <div className="bg-gray-100 px-4 py-3 border-b border-gray-200 grid grid-cols-12 gap-2">
@@ -108,7 +107,7 @@ export default function TranscriptionPage() {
               <div className="col-span-9 font-medium text-gray-700 text-sm">Transcript</div>
             </div>
 
-            {/* Full list of transcripts - No scrollbar */}
+            {/* Transcript segments */}
             <div>
               {mockTranscriptionData.map((segment, index) => (
                 <div
@@ -133,12 +132,12 @@ export default function TranscriptionPage() {
           </div>
         </div>
 
-        {/* Dynamic Audio Player that adjusts based on header/footer visibility */}
+        {/* Dynamic Audio Player */}
         <DynamicAudioPlayer
           ref={audioRef}
           audioUrl="/audio/sample.mp3"
           currentTime={currentTime}
-          onTimeUpdate={setCurrentTime}
+          onTimeUpdate={handleTimeUpdate}
           isMobile={isMobile}
         />
       </main>

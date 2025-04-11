@@ -1,10 +1,10 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useImperativeHandle, useRef, forwardRef, useState } from "react"
+import { useEffect, useImperativeHandle, useRef, forwardRef, useState, useCallback } from "react"
 import { Slider } from "@/components/ui/slider"
 import { Button } from "@/components/ui/button"
-import { Volume2, VolumeX, Play, Pause } from "lucide-react"
+import { Volume2, VolumeX, Play, Pause } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
@@ -20,10 +20,15 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const progressTrackRef = useRef<HTMLDivElement>(null)
     const playerRef = useRef<HTMLDivElement>(null)
+    
+    // Core audio state
     const [duration, setDuration] = useState(0)
+    const [internalTime, setInternalTime] = useState(currentTime)
+    const [isPlaying, setIsPlaying] = useState(false)
+    
+    // UI state
     const [volume, setVolume] = useState(1)
     const [playbackRate, setPlaybackRate] = useState(1)
-    const [isPlaying, setIsPlaying] = useState(false)
     const [isMuted, setIsMuted] = useState(false)
     const [isDragging, setIsDragging] = useState(false)
     const [isVolumeOpen, setIsVolumeOpen] = useState(false)
@@ -31,17 +36,18 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
     // Dynamic positioning states
     const [headerVisible, setHeaderVisible] = useState(true)
     const [footerVisible, setFooterVisible] = useState(false)
-    const [topOffset, setTopOffset] = useState("80px") // Default top offset when header is visible
-    const [bottomOffset, setBottomOffset] = useState("64px") // Default bottom offset when footer is visible
+    const [topOffset, setTopOffset] = useState("80px") 
+    const [bottomOffset, setBottomOffset] = useState("64px")
 
-    const [sliderValue, setSliderValue] = useState<number[]>([duration - currentTime])
-
-    useEffect(() => {
-      setSliderValue([duration - currentTime])
-    }, [currentTime, duration])
-   
     // Expose internal audio element ref
     useImperativeHandle(ref, () => audioRef.current as HTMLAudioElement)
+
+    // Keep internal time in sync with external time
+    useEffect(() => {
+      if (!isDragging) {
+        setInternalTime(currentTime)
+      }
+    }, [currentTime, isDragging])
 
     // Set up intersection observers for header and footer
     useEffect(() => {
@@ -75,11 +81,10 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
       }
     }, [])
 
-    // Update currentTime in parent
     // Sync external currentTime to audio element
     useEffect(() => {
       const audio = audioRef.current
-      if (!audio) return
+      if (!audio || isDragging) return
 
       // Only seek if time difference is significant (from transcript click)
       if (Math.abs(audio.currentTime - currentTime) > 0.5) {
@@ -90,37 +95,38 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
           audio.play().catch((error) => console.error("Error playing audio:", error))
         }
       }
-    }, [currentTime])
+    }, [currentTime, isDragging])
 
     // Update currentTime in parent
+    const handleTimeUpdate = useCallback(() => {
+      const audio = audioRef.current
+      if (!audio || isDragging) return
+      
+      const newTime = audio.currentTime
+      setInternalTime(newTime)
+      onTimeUpdate(newTime)
+    }, [onTimeUpdate, isDragging])
+
+    // Set up time update listener
     useEffect(() => {
-      const audio = audioRef.current;
-      if (!audio) return;
-    
-      const handleTimeUpdate = () => {
-        // Update parent state  
-        onTimeUpdate(audio.currentTime);
-        
-        // Explicitly update slider position for the invisible slider
-        if (progressTrackRef.current) {
-          const progress = audio.currentTime / (audio.duration || 1) * 100;
-          // The progress is now properly synced
-        }
-      };
-    
-      audio.addEventListener("timeupdate", handleTimeUpdate);
+      const audio = audioRef.current
+      if (!audio) return
+      
+      audio.addEventListener("timeupdate", handleTimeUpdate)
       return () => {
-        audio.removeEventListener("timeupdate", handleTimeUpdate);
-      };
-    }, [onTimeUpdate]);
+        audio.removeEventListener("timeupdate", handleTimeUpdate)
+      }
+    }, [handleTimeUpdate])
 
     // Set duration when metadata loads
     useEffect(() => {
       const audio = audioRef.current
       if (!audio) return
+      
       const handleLoadedMetadata = () => {
         setDuration(audio.duration)
       }
+      
       audio.addEventListener("loadedmetadata", handleLoadedMetadata)
       return () => audio.removeEventListener("loadedmetadata", handleLoadedMetadata)
     }, [])
@@ -132,13 +138,16 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
 
       const handlePlay = () => setIsPlaying(true)
       const handlePause = () => setIsPlaying(false)
+      const handleEnded = () => setIsPlaying(false)
 
       audio.addEventListener("play", handlePlay)
       audio.addEventListener("pause", handlePause)
+      audio.addEventListener("ended", handleEnded)
 
       return () => {
         audio.removeEventListener("play", handlePlay)
         audio.removeEventListener("pause", handlePause)
+        audio.removeEventListener("ended", handleEnded)
       }
     }, [])
 
@@ -146,6 +155,7 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
     const togglePlay = () => {
       const audio = audioRef.current
       if (!audio) return
+      
       if (audio.paused) {
         audio
           .play()
@@ -159,24 +169,17 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
         audio.pause()
         setIsPlaying(false)
       }
-
-      // Ensure isPlaying state is always in sync with actual audio state
-      setIsPlaying(!audio.paused)
     }
 
-    // Progress slider handler - inverted for top-to-bottom progress
+    // Progress slider handler - using direct time values (not inverted)
     const handleProgressChange = (value: number[]) => {
-      // Invert the value to make it go from top to bottom
-      const invertedValue = duration - value[0]
+      const newTime = value[0]
+      setInternalTime(newTime)
+      
       if (audioRef.current) {
-        audioRef.current.currentTime = invertedValue
+        audioRef.current.currentTime = newTime
+        onTimeUpdate(newTime)
       }
-      onTimeUpdate(invertedValue)
-    }
-
-    // Get the inverted slider value for display
-    const getInvertedSliderValue = () => {
-      return [duration - currentTime]
     }
 
     // Handle direct track click
@@ -189,6 +192,8 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
 
       if (audioRef.current) {
         audioRef.current.currentTime = newTime
+        setInternalTime(newTime)
+        onTimeUpdate(newTime)
       }
     }
 
@@ -196,6 +201,7 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
     const handleVolumeChange = (value: number[]) => {
       const newVolume = value[0]
       setVolume(newVolume)
+      
       if (audioRef.current) {
         audioRef.current.volume = newVolume
         setIsMuted(newVolume === 0)
@@ -235,7 +241,7 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
     }
 
     // Calculate progress percentage for custom track styling
-    const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0
+    const progressPercentage = duration > 0 ? (internalTime / duration) * 100 : 0
 
     // Determine sizes based on mobile state
     const containerWidth = isMobile ? "w-10" : "w-12"
@@ -258,10 +264,10 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
         }}
       >
         {/* Hidden audio element */}
-        <audio ref={audioRef} src={audioUrl} className="hidden" />
+        <audio ref={audioRef} src={audioUrl} className="hidden" preload="metadata" />
 
         {/* Time display - Current time at top */}
-        <div className={`${timeTextSize} font-mono mb-2 text-center`}>{formatTime(currentTime)}</div>
+        <div className={`${timeTextSize} font-mono mb-2 text-center`}>{formatTime(internalTime)}</div>
 
         {/* Play/Pause button */}
         <Button
@@ -279,47 +285,49 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
           ref={progressTrackRef}
           onClick={handleTrackClick}
         >
-          <div className={`relative ${trackWidth} bg-gray-200/80 rounded-full overflow-hidden`}>
-            {/* Track background */}
-            <div className="absolute top-0 left-0 right-0 bottom-0 rounded-full"></div>
-
+          <div className={`relative ${trackWidth} bg-gray-200/80 rounded-full overflow-hidden h-full`}>
             {/* Progress indicator - moves from top to bottom */}
             <div
               className="absolute top-0 left-0 right-0 bg-gray-400 rounded-full"
               style={{ height: `${progressPercentage}%` }}
             ></div>
 
-            {/* Progress handle/thumb - Round point with no white space */}
+            {/* Progress handle/thumb - Round point */}
             <div
               className={`absolute left-1/2 ${handleSize} bg-gray-500 rounded-full -translate-x-1/2 transform transition-all ${isDragging ? "scale-110" : ""}`}
               style={{
                 top: `${progressPercentage}%`,
                 boxShadow: "0 0 0 2px #6b7280",
               }}
-              onMouseDown={() => setIsDragging(true)}
-              onMouseUp={() => setIsDragging(false)}
             ></div>
 
-            {/* Invisible slider for interaction */}
+            {/* Interactive slider - now using direct time values */}
             <Slider
-              value={sliderValue}
+              value={[internalTime]}
               min={0}
               max={duration || 100}
               step={0.1}
-              onValueChange={handleProgressChange}
+              onValueChange={(value) => {
+                setInternalTime(value[0])
+              }}
+              onValueCommit={handleProgressChange}
               orientation="vertical"
-              className={`h-full ${trackWidth} absolute inset-0 opacity-0`}
-              onValueCommit={() => setIsDragging(false)}
+              className="h-full absolute inset-0 opacity-0 cursor-pointer"
+              onMouseDown={() => setIsDragging(true)}
+              onMouseUp={() => setIsDragging(false)}
+              onTouchStart={() => setIsDragging(true)}
+              onTouchEnd={() => setIsDragging(false)}
             />
           </div>
         </div>
 
-        {/* Volume control with custom styling to fix handle position */}
+        {/* Volume control */}
         <Popover open={isVolumeOpen} onOpenChange={setIsVolumeOpen}>
           <PopoverTrigger asChild>
             <Button
               size="icon"
               variant="ghost"
+              onClick={toggleMute}
               className={`${buttonSize} rounded-full mb-2 bg-gray-200/80 hover:bg-gray-300/80`}
             >
               {isMuted || volume === 0 ? <VolumeX className={iconSize} /> : <Volume2 className={iconSize} />}
@@ -332,7 +340,7 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
             sideOffset={5}
           >
             <div className="h-[120px] w-full flex justify-center items-center">
-              {/* Custom volume slider with fixed styling */}
+              {/* Custom volume slider */}
               <div className={`relative h-full ${trackWidth} bg-gray-200 rounded-full overflow-hidden`}>
                 <div
                   className="absolute bottom-0 left-0 right-0 bg-gray-400 rounded-full"
@@ -352,7 +360,7 @@ const DynamicAudioPlayer = forwardRef<HTMLAudioElement, Props>(
                   step={0.01}
                   onValueChange={handleVolumeChange}
                   orientation="vertical"
-                  className={`h-full ${trackWidth} absolute inset-0 opacity-0`}
+                  className="h-full absolute inset-0 opacity-0 cursor-pointer"
                 />
               </div>
             </div>
