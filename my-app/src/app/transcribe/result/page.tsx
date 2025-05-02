@@ -153,7 +153,7 @@ export default function TranscriptionPage() {
         const groups = groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration)
         const currentGroupIndex = findGroupIndexForSegment(index, groups)
   
-        // 1. Expand the new group only (collapse others)
+        // 1. Expand current group only
         setOpenGroups((prev) => {
           const updated: Record<number, boolean> = {}
           groups.forEach((_, i) => {
@@ -162,21 +162,23 @@ export default function TranscriptionPage() {
           return updated
         })
   
-        // 2. Scroll AFTER next paint frame + small timeout (to wait for expansion)
-        // Use a timeout to let the DOM update + animation finish
-        setTimeout(() => {
-          requestAnimationFrame(() => {
-            const el = groupRefs.current[currentGroupIndex]
-            if (el) {
-              el.scrollIntoView({ behavior: "smooth", block: "start" })
-            }
-          })
-        }, 350) // Match your CSS transition duration if possible
+        // 2. After group expanded, scroll to the actual highlighted segment (not just the group top)
+        const waitForElementAndScroll = () => {
+          const segmentEl = segmentRefs.current[index]
+          if (segmentEl) {
+            segmentEl.scrollIntoView({ behavior: "smooth", block: "center" })
+          } else {
+            // Try again after a short delay
+            setTimeout(waitForElementAndScroll, 100)
+          }
+        }
+  
+        setTimeout(waitForElementAndScroll, 400) // wait for DOM + animation
       }
     }
   
     userInteractionRef.current = false
-  }, [currentTime, activeIndex, isUserScrolling])
+  }, [currentTime, activeIndex, isUserScrolling, autoScrollEnabled])
   
   useEffect(() => {
     if (autoScrollEnabled) {
