@@ -127,16 +127,15 @@
     font: 1em sans-serif;
   }
 }
-
 .collapsible-content-wrapper {
   overflow: hidden;
-  transition: max-height 0.3s ease, opacity 1s ease;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
   max-height: 0;
   opacity: 0;
+  will-change: max-height, opacity;
+  position: relative; /* 防止影响父容器布局 */
 }
-
 .collapsible-content-wrapper.expanded {
-  max-height: 8999px;
+  max-height: 9999px; /* 允许足够展开 */
   opacity: 1;
 }
-

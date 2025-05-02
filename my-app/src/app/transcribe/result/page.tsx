@@ -153,7 +153,7 @@ export default function TranscriptionPage() {
         const groups = groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration)
         const currentGroupIndex = findGroupIndexForSegment(index, groups)
   
-        // 1. Expand current group only
+        // Step 1: Expand the new group, collapse others
         setOpenGroups((prev) => {
           const updated: Record<number, boolean> = {}
           groups.forEach((_, i) => {
@@ -162,23 +162,24 @@ export default function TranscriptionPage() {
           return updated
         })
   
-        // 2. After group expanded, scroll to the actual highlighted segment (not just the group top)
-        const waitForElementAndScroll = () => {
-          const segmentEl = segmentRefs.current[index]
-          if (segmentEl) {
-            segmentEl.scrollIntoView({ behavior: "smooth", block: "center" })
+        // Step 2: Wait for group to expand, then scroll to the actual active segment
+        const scrollToSegment = () => {
+          const el = segmentRefs.current[index]
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" })
           } else {
-            // Try again after a short delay
-            setTimeout(waitForElementAndScroll, 100)
+            setTimeout(scrollToSegment, 100)
           }
         }
   
-        setTimeout(waitForElementAndScroll, 400) // wait for DOM + animation
+        // Wait for re-render to complete (e.g., after group is opened)
+        setTimeout(scrollToSegment, 400)
       }
     }
   
     userInteractionRef.current = false
   }, [currentTime, activeIndex, isUserScrolling, autoScrollEnabled])
+  
   
   useEffect(() => {
     if (autoScrollEnabled) {
