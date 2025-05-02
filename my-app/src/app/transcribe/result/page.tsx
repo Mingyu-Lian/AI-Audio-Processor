@@ -6,7 +6,7 @@ import Footer from "@/components/Footer"
 import DynamicAudioPlayer from "@/components/AudioPlayer"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronRight,  ArrowUp } from "lucide-react"
-
+import { Progress } from "@/components/ui/progress"
 
 // TEST DATA
 import { mockTranscriptionData } from "../mockTranscriptionData"
@@ -212,7 +212,7 @@ export default function TranscriptionPage() {
             >
               {allExpanded ? "Collapse All" : "Expand All"}
             </Button>
-          </div>
+        </div>
 
         {/* Main Content Area - Adjusted for the fixed audio player */}
         <div className={`max-w-5xl mx-auto ${isMobile ? "pr-4 sm:pr-16" : "pr-0 md:pr-16"}`}>
@@ -236,8 +236,7 @@ export default function TranscriptionPage() {
                         [groupIndex]: !prev[groupIndex],
                       }))
                     }
-                    className="w-full text-left px-4 py-2 bg-gray-100 hover:bg-gray-200 flex items-center justify-between font-semibold text-sm"
-                  >
+                    className="w-full text-left px-4 py-2 bg-gray-100 hover:bg-gray-200 flex items-center justify-between font-semibold text-sm">
                     <span>{formatTime(group.groupStart)} - {formatTime(group.groupEnd)}</span>
                     <ChevronDown
                       className={`h-4 w-4 transform transition-transform ${
@@ -247,7 +246,9 @@ export default function TranscriptionPage() {
                   </button>
                 
                   {/* Animated content */}
+                  {/* Animated content */}
                   <div className={`collapsible-content-wrapper ${openGroups[groupIndex] ? "expanded" : ""}`}>
+                
                     {group.segments.map((segment: Segment, index) => {
                       const realIndex = TRANSCRIPT_DATA.findIndex(
                         (s) => s.start === segment.start && s.end === segment.end
@@ -274,9 +275,9 @@ export default function TranscriptionPage() {
                       )
                     })}
                   </div>
-                </div>
-                
-              ))}
+                  </div>
+              )
+              )}
             </div>
           </div>
         </div>
