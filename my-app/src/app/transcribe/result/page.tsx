@@ -6,7 +6,6 @@ import Footer from "@/components/Footer"
 import DynamicAudioPlayer from "@/components/AudioPlayer"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronRight,  ArrowUp } from "lucide-react"
-import { Progress } from "@/components/ui/progress"
 
 // TEST DATA
 import { mockTranscriptionData } from "../mockTranscriptionData"
@@ -30,6 +29,8 @@ function formatTime(seconds: number): string {
 
   return `${hoursStr}${minsStr}:${secsStr}`
 }
+
+
 
 type Segment = {
   start: number
@@ -85,11 +86,19 @@ function groupTranscriptsByTime(
   return groups
 }
 
+function findGroupIndexForSegment(segmentIndex: number, groups: Group[]): number {
+  const segment = TRANSCRIPT_DATA[segmentIndex]
+  return groups.findIndex(
+    (group) => segment.start >= group.groupStart && segment.end <= group.groupEnd
+  )
+}
+
 export default function TranscriptionPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const [currentTime, setCurrentTime] = useState(0)
   const [activeIndex, setActiveIndex] = useState(0)
   const segmentRefs = useRef<(HTMLDivElement | null)[]>([])
+  const groupRefs = useRef<(HTMLDivElement | null)[]>([])
   const [isMobile, setIsMobile] = useState(false)
   const [isUserScrolling, setIsUserScrolling] = useState(false)
   const userInteractionRef = useRef(false)
@@ -97,7 +106,9 @@ export default function TranscriptionPage() {
   const audioDuration = TRANSCRIPT_DATA[TRANSCRIPT_DATA.length - 1]?.end ?? 0
   const [openGroups, setOpenGroups] = useState<Record<number, boolean>>({})
   const [allExpanded, setAllExpanded] = useState(true)
-  const [showScrollTop, setShowScrollTop] = useState(false)
+  const [showScrollTop, setShowScrollTop] = useState(false) 
+
+
 
   useEffect(() => {
     segmentRefs.current = new Array(TRANSCRIPT_DATA.length).fill(null)
@@ -131,23 +142,54 @@ export default function TranscriptionPage() {
 
   // Update active segment based on current time
   useEffect(() => {
-    const index = TRANSCRIPT_DATA.findIndex((seg) => currentTime >= seg.start && currentTime < seg.end)
+    const index = TRANSCRIPT_DATA.findIndex(
+      (seg) => currentTime >= seg.start && currentTime < seg.end
+    )
+  
     if (index !== -1 && index !== activeIndex) {
       setActiveIndex(index)
-
+  
       if (!isUserScrolling && !userInteractionRef.current && autoScrollEnabled) {
-        const el = segmentRefs.current[index]
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" })
-        }
+        const groups = groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration)
+        const currentGroupIndex = findGroupIndexForSegment(index, groups)
+  
+        // 1. Expand the new group only (collapse others)
+        setOpenGroups((prev) => {
+          const updated: Record<number, boolean> = {}
+          groups.forEach((_, i) => {
+            updated[i] = i === currentGroupIndex
+          })
+          return updated
+        })
+  
+        // 2. Scroll AFTER next paint frame + small timeout (to wait for expansion)
+        // Use a timeout to let the DOM update + animation finish
+        setTimeout(() => {
+          requestAnimationFrame(() => {
+            const el = groupRefs.current[currentGroupIndex]
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+          })
+        }, 350) // Match your CSS transition duration if possible
       }
     }
-
-    // Reset user interaction flag after processing
+  
     userInteractionRef.current = false
   }, [currentTime, activeIndex, isUserScrolling])
-
   
+  useEffect(() => {
+    if (autoScrollEnabled) {
+      const groups = groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration)
+      const firstGroupIndex = 0
+      const initialOpen: Record<number, boolean> = {}
+      groups.forEach((_, i) => {
+        initialOpen[i] = i === firstGroupIndex
+      })
+      setOpenGroups(initialOpen)
+    }
+  }, [audioDuration, autoScrollEnabled])
+
 
   // Handle segment click to jump to that point in audio
   const handleSegmentClick = (start: number) => {
@@ -227,7 +269,9 @@ export default function TranscriptionPage() {
             {/* Transcript segments */}
             <div>
               {groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration).map((group, groupIndex) => (
-                  <div key={groupIndex} className="border-b">
+                  <div key={groupIndex} 
+                  ref={(el) => { groupRefs.current[groupIndex] = el }}
+                  className="border-b">
                   {/* Trigger bar */}
                   <button
                     onClick={() =>

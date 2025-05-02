@@ -130,12 +130,13 @@
 
 .collapsible-content-wrapper {
   overflow: hidden;
-  transition: max-height 0.6s ease, opacity 0.6s ease;
+  transition: max-height 0.3s ease, opacity 1s ease;
   max-height: 0;
   opacity: 0;
 }
 
 .collapsible-content-wrapper.expanded {
-  max-height: 9999px;
+  max-height: 8999px;
   opacity: 1;
 }
+
