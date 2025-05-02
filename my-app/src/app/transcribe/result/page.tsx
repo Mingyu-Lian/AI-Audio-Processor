@@ -10,16 +10,23 @@ import { Button } from "@/components/ui/button"
 import { mockTranscriptionData } from "../mockTranscriptionData"
 import { mockLongTranscriptionData } from "../mockLongTranscriptionData"
 
+// === CONFIG AREA: easy to change when testing ===
+const AUDIO_URL = "/audio/one_and_half_hour.mp3"
+
+// const TRANSCRIPT_DATA = mockTranscriptionData
+const TRANSCRIPT_DATA = mockLongTranscriptionData
 
 
 function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, "0")
+  const hrs = Math.floor(seconds / 3600)
+  const mins = Math.floor((seconds % 3600) / 60)
   const secs = Math.floor(seconds % 60)
-    .toString()
-    .padStart(2, "0")
-  return `${mins}:${secs}`
+
+  const hoursStr = hrs > 0 ? `${hrs.toString().padStart(2, "0")}:` : ""
+  const minsStr = mins.toString().padStart(2, "0")
+  const secsStr = secs.toString().padStart(2, "0")
+
+  return `${hoursStr}${minsStr}:${secsStr}`
 }
 
 export default function TranscriptionPage() {
@@ -61,7 +68,7 @@ export default function TranscriptionPage() {
 
   // Update active segment based on current time
   useEffect(() => {
-    const index = mockLongTranscriptionData.findIndex((seg) => currentTime >= seg.start && currentTime < seg.end)
+    const index = TRANSCRIPT_DATA.findIndex((seg) => currentTime >= seg.start && currentTime < seg.end)
     if (index !== -1 && index !== activeIndex) {
       setActiveIndex(index)
 
@@ -126,7 +133,7 @@ export default function TranscriptionPage() {
 
             {/* Transcript segments */}
             <div>
-              {mockLongTranscriptionData.map((segment, index) => (
+              {TRANSCRIPT_DATA.map((segment, index) => (
                 <div
                   key={index}
                   ref={(el: HTMLDivElement | null) => {
@@ -152,7 +159,7 @@ export default function TranscriptionPage() {
         {/* Dynamic Audio Player */}
         <DynamicAudioPlayer
           ref={audioRef}
-          audioUrl="/audio/sample.mp3"
+          audioUrl={AUDIO_URL}
           currentTime={currentTime}
           onTimeUpdate={handleTimeUpdate}
           isMobile={isMobile}
