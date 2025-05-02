@@ -92,6 +92,9 @@ export default function TranscriptionPage() {
   const [isUserScrolling, setIsUserScrolling] = useState(false)
   const userInteractionRef = useRef(false)
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
+  const [audioDuration, setAudioDuration] = useState<number>(0)
+  const [openGroups, setOpenGroups] = useState<Record<number, boolean>>({})
+  const [allExpanded, setAllExpanded] = useState(true)
 
   // Check if device is mobile
   useEffect(() => {
@@ -138,6 +141,20 @@ export default function TranscriptionPage() {
     userInteractionRef.current = false
   }, [currentTime, activeIndex, isUserScrolling])
 
+  useEffect(() => {
+    const audio = audioRef.current
+    if (audio) {
+      const handleLoadedMetadata = () => {
+        setAudioDuration(audio.duration)
+      }
+  
+      audio.addEventListener("loadedmetadata", handleLoadedMetadata)
+      return () => {
+        audio.removeEventListener("loadedmetadata", handleLoadedMetadata)
+      }
+    }
+  }, [])
+
   // Handle segment click to jump to that point in audio
   const handleSegmentClick = (start: number) => {
     userInteractionRef.current = true
@@ -147,6 +164,15 @@ export default function TranscriptionPage() {
       audioRef.current.currentTime = start
       audioRef.current.play().catch((err) => console.error("Error playing audio:", err))
     }
+  }
+  const handleToggleAll = () => {
+    const newState = !allExpanded
+    setAllExpanded(newState)
+    const updated: Record<number, boolean> = {}
+    groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration).forEach((_, i) => {
+      updated[i] = newState
+    })
+    setOpenGroups(updated)
   }
 
   // Handle time updates from the audio player
@@ -165,15 +191,26 @@ export default function TranscriptionPage() {
           <p className="text-gray-600 mt-2">Audio transcription with timestamps</p>
         </div>
         
-        {/* Auto-Scroll Toggle Button */}
-        <div className="mb-6 text-center">
-          <Button
-            variant={autoScrollEnabled ? "default" : "outline"}
-            onClick={() => setAutoScrollEnabled((prev) => !prev)}
-          >
-            {autoScrollEnabled ? "Auto-Scroll: ON" : "Auto-Scroll: OFF"}
-          </Button>
-        </div>
+        {/* Auto-Scroll Toggle & Collapse Button */}
+        <div className="mb-6 text-center space-x-2">
+            {/* Auto-Scroll 按钮 */}
+            <Button
+              variant={autoScrollEnabled ? "default" : "outline"}
+              onClick={() => setAutoScrollEnabled((prev) => !prev)}
+              className="min-w-[140px]"
+            >
+              {autoScrollEnabled ? "Auto-Scroll: ON" : "Auto-Scroll: OFF"}
+            </Button>
+
+            {/* Collapse All 按钮，逻辑与 autoScroll 类似 */}
+            <Button
+              variant={allExpanded ? "default" : "outline"}
+              onClick={handleToggleAll}
+              className="min-w-[140px]"
+            >
+              {allExpanded ? "Collapse All" : "Expand All"}
+            </Button>
+          </div>
 
         {/* Main Content Area - Adjusted for the fixed audio player */}
         <div className={`max-w-5xl mx-auto ${isMobile ? "pr-4 sm:pr-16" : "pr-0 md:pr-16"}`}>
@@ -187,8 +224,14 @@ export default function TranscriptionPage() {
 
             {/* Transcript segments */}
             <div>
-              {groupTranscriptsByTime(TRANSCRIPT_DATA, 5400).map((group, groupIndex) => (
-                <Collapsible key={groupIndex} defaultOpen>
+              {groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration).map((group, groupIndex) => (
+                  <Collapsible
+                  key={groupIndex}
+                  open={openGroups[groupIndex] ?? true}
+                  onOpenChange={(isOpen) =>
+                    setOpenGroups((prev) => ({ ...prev, [groupIndex]: isOpen }))
+                  }
+                  >              
                   <CollapsibleTrigger className="w-full text-left px-4 py-2 bg-gray-100 hover:bg-gray-200 flex items-center justify-between font-semibold text-sm border-b">
                     <span>{formatTime(group.groupStart)} - {formatTime(group.groupEnd)}</span>
                     <ChevronDown className="h-4 w-4" />
