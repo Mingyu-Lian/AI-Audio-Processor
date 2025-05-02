@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from "react"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import DynamicAudioPlayer from "@/components/AudioPlayer"
+import { Button } from "@/components/ui/button"
+
+// TEST DATA
 import { mockTranscriptionData } from "../mockTranscriptionData"
+import { mockLongTranscriptionData } from "../mockLongTranscriptionData"
+
+
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60)
@@ -24,6 +30,7 @@ export default function TranscriptionPage() {
   const [isMobile, setIsMobile] = useState(false)
   const [isUserScrolling, setIsUserScrolling] = useState(false)
   const userInteractionRef = useRef(false)
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
 
   // Check if device is mobile
   useEffect(() => {
@@ -54,11 +61,11 @@ export default function TranscriptionPage() {
 
   // Update active segment based on current time
   useEffect(() => {
-    const index = mockTranscriptionData.findIndex((seg) => currentTime >= seg.start && currentTime < seg.end)
+    const index = mockLongTranscriptionData.findIndex((seg) => currentTime >= seg.start && currentTime < seg.end)
     if (index !== -1 && index !== activeIndex) {
       setActiveIndex(index)
 
-      if (!isUserScrolling && !userInteractionRef.current) {
+      if (!isUserScrolling && !userInteractionRef.current && autoScrollEnabled) {
         const el = segmentRefs.current[index]
         if (el) {
           el.scrollIntoView({ behavior: "smooth", block: "center" })
@@ -96,6 +103,16 @@ export default function TranscriptionPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Transcription Result</h1>
           <p className="text-gray-600 mt-2">Audio transcription with timestamps</p>
         </div>
+        
+        {/* Auto-Scroll Toggle Button */}
+        <div className="mb-6 text-center">
+          <Button
+            variant={autoScrollEnabled ? "default" : "outline"}
+            onClick={() => setAutoScrollEnabled((prev) => !prev)}
+          >
+            {autoScrollEnabled ? "Auto-Scroll: ON" : "Auto-Scroll: OFF"}
+          </Button>
+        </div>
 
         {/* Main Content Area - Adjusted for the fixed audio player */}
         <div className={`max-w-5xl mx-auto ${isMobile ? "pr-4 sm:pr-16" : "pr-0 md:pr-16"}`}>
@@ -109,7 +126,7 @@ export default function TranscriptionPage() {
 
             {/* Transcript segments */}
             <div>
-              {mockTranscriptionData.map((segment, index) => (
+              {mockLongTranscriptionData.map((segment, index) => (
                 <div
                   key={index}
                   ref={(el: HTMLDivElement | null) => {
