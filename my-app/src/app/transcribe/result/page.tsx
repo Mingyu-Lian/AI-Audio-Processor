@@ -5,7 +5,6 @@ import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import DynamicAudioPlayer from "@/components/AudioPlayer"
 import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ChevronDown, ChevronRight,  ArrowUp } from "lucide-react"
 
 
@@ -228,28 +227,32 @@ export default function TranscriptionPage() {
             {/* Transcript segments */}
             <div>
               {groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration).map((group, groupIndex) => (
-                  <Collapsible
-                  key={groupIndex}
-                  open={openGroups[groupIndex] ?? true}
-                  onOpenChange={(isOpen) =>
-                    setOpenGroups((prev) => ({ ...prev, [groupIndex]: isOpen }))
-                  }
-                  >              
-                  <CollapsibleTrigger className="w-full text-left px-4 py-2 bg-gray-100 hover:bg-gray-200 flex items-center justify-between font-semibold text-sm border-b">
+                  <div key={groupIndex} className="border-b">
+                  {/* Trigger bar */}
+                  <button
+                    onClick={() =>
+                      setOpenGroups((prev) => ({
+                        ...prev,
+                        [groupIndex]: !prev[groupIndex],
+                      }))
+                    }
+                    className="w-full text-left px-4 py-2 bg-gray-100 hover:bg-gray-200 flex items-center justify-between font-semibold text-sm"
+                  >
                     <span>{formatTime(group.groupStart)} - {formatTime(group.groupEnd)}</span>
                     <ChevronDown
                       className={`h-4 w-4 transform transition-transform ${
                         openGroups[groupIndex] ? "rotate-180" : ""
                       }`}
                     />
-                  </CollapsibleTrigger>
-
-                  <CollapsibleContent >
+                  </button>
+                
+                  {/* Animated content */}
+                  <div className={`collapsible-content-wrapper ${openGroups[groupIndex] ? "expanded" : ""}`}>
                     {group.segments.map((segment: Segment, index) => {
                       const realIndex = TRANSCRIPT_DATA.findIndex(
                         (s) => s.start === segment.start && s.end === segment.end
                       )
-
+                
                       return (
                         <div
                           key={index}
@@ -270,8 +273,9 @@ export default function TranscriptionPage() {
                         </div>
                       )
                     })}
-                  </CollapsibleContent>
-                </Collapsible>
+                  </div>
+                </div>
+                
               ))}
             </div>
           </div>

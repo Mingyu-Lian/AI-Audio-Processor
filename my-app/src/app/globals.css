@@ -128,3 +128,14 @@
   }
 }
 
+.collapsible-content-wrapper {
+  overflow: hidden;
+  transition: max-height 0.4s ease, opacity 0.4s ease;
+  max-height: 0;
+  opacity: 0;
+}
+
+.collapsible-content-wrapper.expanded {
+  max-height: 1000px; /* 设一个比最大可能内容略大的值 */
+  opacity: 1;
+}
