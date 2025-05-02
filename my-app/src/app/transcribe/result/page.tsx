@@ -5,6 +5,8 @@ import Header from "@/components/Header"
 import Footer from "@/components/Footer"
 import DynamicAudioPlayer from "@/components/AudioPlayer"
 import { Button } from "@/components/ui/button"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { ChevronDown, ChevronRight } from "lucide-react"
 
 // TEST DATA
 import { mockTranscriptionData } from "../mockTranscriptionData"
@@ -27,6 +29,58 @@ function formatTime(seconds: number): string {
   const secsStr = secs.toString().padStart(2, "0")
 
   return `${hoursStr}${minsStr}:${secsStr}`
+}
+
+type Segment = {
+  start: number
+  end: number
+  text: string
+}
+
+type Group = {
+  groupStart: number
+  groupEnd: number
+  segments: Segment[]
+}
+
+function getGroupDuration(audioDuration: number): number {
+  if (audioDuration > 6 * 3600) return 3600  // 每小时
+  if (audioDuration > 3 * 3600) return 1800  // 每30分钟
+  if (audioDuration > 3600) return 600       // 每10分钟
+  if (audioDuration > 1800) return 300       // 每5分钟
+  return 0  // 不分组
+}
+
+function groupTranscriptsByTime(
+  transcripts: Segment[],
+  totalDuration: number
+): Group[] {
+  const groupDuration = getGroupDuration(totalDuration)
+  if (groupDuration === 0) {
+    return [{
+      groupStart: transcripts[0]?.start ?? 0,
+      groupEnd: transcripts[transcripts.length - 1]?.end ?? 0,
+      segments: transcripts
+    }]
+  }
+  const groups: Group[] = []
+  let currentGroup: Group | null = null
+
+  for (const seg of transcripts) {
+    if (!currentGroup || seg.start >= currentGroup.groupEnd) {
+      const groupStart = Math.floor(seg.start / groupDuration) * groupDuration
+      const groupEnd = groupStart + groupDuration
+      currentGroup = {
+        groupStart,
+        groupEnd,
+        segments: []
+      }
+      groups.push(currentGroup)
+    }
+    currentGroup.segments.push(seg)
+  }
+
+  return groups
 }
 
 export default function TranscriptionPage() {
@@ -133,24 +187,41 @@ export default function TranscriptionPage() {
 
             {/* Transcript segments */}
             <div>
-              {TRANSCRIPT_DATA.map((segment, index) => (
-                <div
-                  key={index}
-                  ref={(el: HTMLDivElement | null) => {
-                    segmentRefs.current[index] = el
-                  }}
-                  onClick={() => handleSegmentClick(segment.start)}
-                  className={`grid grid-cols-12 gap-2 border-b border-gray-100 px-4 py-3 transition cursor-pointer ${
-                    index === activeIndex ? "bg-yellow-50 border-l-4 border-l-yellow-400" : "hover:bg-gray-50"
-                  }`}
-                >
-                  <div className="col-span-3 font-mono text-gray-600 text-xs sm:text-sm font-semibold">
-                    {formatTime(segment.start)} - {formatTime(segment.end)}
-                  </div>
-                  <div className={`col-span-9 text-gray-800 ${isMobile ? "text-xs" : "text-sm sm:text-base"}`}>
-                    {segment.text}
-                  </div>
-                </div>
+              {groupTranscriptsByTime(TRANSCRIPT_DATA, 5400).map((group, groupIndex) => (
+                <Collapsible key={groupIndex} defaultOpen>
+                  <CollapsibleTrigger className="w-full text-left px-4 py-2 bg-gray-100 hover:bg-gray-200 flex items-center justify-between font-semibold text-sm border-b">
+                    <span>{formatTime(group.groupStart)} - {formatTime(group.groupEnd)}</span>
+                    <ChevronDown className="h-4 w-4" />
+                  </CollapsibleTrigger>
+
+                  <CollapsibleContent>
+                    {group.segments.map((segment: Segment, index) => {
+                      const realIndex = TRANSCRIPT_DATA.findIndex(
+                        (s) => s.start === segment.start && s.end === segment.end
+                      )
+
+                      return (
+                        <div
+                          key={index}
+                          ref={(el: HTMLDivElement | null) => {
+                            segmentRefs.current[realIndex] = el
+                          }}
+                          onClick={() => handleSegmentClick(segment.start)}
+                          className={`grid grid-cols-12 gap-2 border-b border-gray-100 px-4 py-3 transition cursor-pointer ${
+                            realIndex === activeIndex ? "bg-yellow-50 border-l-4 border-l-yellow-400" : "hover:bg-gray-50"
+                          }`}
+                        >
+                          <div className="col-span-3 font-mono text-gray-600 text-xs sm:text-sm font-semibold">
+                            {formatTime(segment.start)} - {formatTime(segment.end)}
+                          </div>
+                          <div className={`col-span-9 text-gray-800 ${isMobile ? "text-xs" : "text-sm sm:text-base"}`}>
+                            {segment.text}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </CollapsibleContent>
+                </Collapsible>
               ))}
             </div>
           </div>
