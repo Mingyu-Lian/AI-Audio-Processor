@@ -234,10 +234,15 @@ export default function TranscriptionPage() {
                   >              
                   <CollapsibleTrigger className="w-full text-left px-4 py-2 bg-gray-100 hover:bg-gray-200 flex items-center justify-between font-semibold text-sm border-b">
                     <span>{formatTime(group.groupStart)} - {formatTime(group.groupEnd)}</span>
-                    <ChevronDown className="h-4 w-4" />
+                    <ChevronDown
+                      className={`h-4 w-4 transform transition-transform ${
+                        openGroups[groupIndex] ? "rotate-180" : ""
+                      }`}
+                    />
                   </CollapsibleTrigger>
 
-                  <CollapsibleContent>
+                  <CollapsibleContent 
+                  className="overflow-hidden transition-all data-[state=open]:animate-slideDown data-[state=closed]:animate-slideUp">
                     {group.segments.map((segment: Segment, index) => {
                       const realIndex = TRANSCRIPT_DATA.findIndex(
                         (s) => s.start === segment.start && s.end === segment.end
