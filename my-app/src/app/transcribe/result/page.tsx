@@ -100,6 +100,9 @@ export default function TranscriptionPage() {
   const [allExpanded, setAllExpanded] = useState(true)
   const [showScrollTop, setShowScrollTop] = useState(false)
 
+  useEffect(() => {
+    segmentRefs.current = new Array(TRANSCRIPT_DATA.length).fill(null)
+  }, [TRANSCRIPT_DATA])
   // Check if device is mobile
   useEffect(() => {
     const checkMobile = () => {
@@ -241,8 +244,7 @@ export default function TranscriptionPage() {
                     />
                   </CollapsibleTrigger>
 
-                  <CollapsibleContent 
-                  className="overflow-hidden transition-all data-[state=open]:animate-slideDown data-[state=closed]:animate-slideUp">
+                  <CollapsibleContent >
                     {group.segments.map((segment: Segment, index) => {
                       const realIndex = TRANSCRIPT_DATA.findIndex(
                         (s) => s.start === segment.start && s.end === segment.end
