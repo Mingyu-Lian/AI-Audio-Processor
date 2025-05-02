@@ -6,7 +6,8 @@ import Footer from "@/components/Footer"
 import DynamicAudioPlayer from "@/components/AudioPlayer"
 import { Button } from "@/components/ui/button"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { ChevronDown, ChevronRight } from "lucide-react"
+import { ChevronDown, ChevronRight,  ArrowUp } from "lucide-react"
+
 
 // TEST DATA
 import { mockTranscriptionData } from "../mockTranscriptionData"
@@ -44,11 +45,13 @@ type Group = {
 }
 
 function getGroupDuration(audioDuration: number): number {
-  if (audioDuration > 6 * 3600) return 3600  // 每小时
-  if (audioDuration > 3 * 3600) return 1800  // 每30分钟
-  if (audioDuration > 3600) return 600       // 每10分钟
-  if (audioDuration > 1800) return 300       // 每5分钟
-  return 0  // 不分组
+  if (audioDuration > 6 * 3600) return 3600        // > 6 小时 → 每组 1 小时
+  if (audioDuration > 3 * 3600) return 1800        // > 3 小时 → 每组 30 分钟
+  if (audioDuration > 3600) return 600             // > 1 小时 → 每组 10 分钟
+  if (audioDuration > 1800) return 300             // > 30 分钟 → 每组 5 分钟
+  if (audioDuration > 900) return 180              // > 15 分钟 → 每组 3 分钟 
+  if (audioDuration > 300) return 120              // > 5 分钟 → 每组 2 分钟 
+  return 0                                         // ≤ 5 分钟 → 不分组 
 }
 
 function groupTranscriptsByTime(
@@ -92,9 +95,10 @@ export default function TranscriptionPage() {
   const [isUserScrolling, setIsUserScrolling] = useState(false)
   const userInteractionRef = useRef(false)
   const [autoScrollEnabled, setAutoScrollEnabled] = useState(true)
-  const [audioDuration, setAudioDuration] = useState<number>(0)
+  const audioDuration = TRANSCRIPT_DATA[TRANSCRIPT_DATA.length - 1]?.end ?? 0
   const [openGroups, setOpenGroups] = useState<Record<number, boolean>>({})
   const [allExpanded, setAllExpanded] = useState(true)
+  const [showScrollTop, setShowScrollTop] = useState(false)
 
   // Check if device is mobile
   useEffect(() => {
@@ -141,19 +145,7 @@ export default function TranscriptionPage() {
     userInteractionRef.current = false
   }, [currentTime, activeIndex, isUserScrolling])
 
-  useEffect(() => {
-    const audio = audioRef.current
-    if (audio) {
-      const handleLoadedMetadata = () => {
-        setAudioDuration(audio.duration)
-      }
   
-      audio.addEventListener("loadedmetadata", handleLoadedMetadata)
-      return () => {
-        audio.removeEventListener("loadedmetadata", handleLoadedMetadata)
-      }
-    }
-  }, [])
 
   // Handle segment click to jump to that point in audio
   const handleSegmentClick = (start: number) => {
@@ -174,6 +166,14 @@ export default function TranscriptionPage() {
     })
     setOpenGroups(updated)
   }
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
 
   // Handle time updates from the audio player
   const handleTimeUpdate = (time: number) => {
@@ -279,6 +279,19 @@ export default function TranscriptionPage() {
           isMobile={isMobile}
         />
       </main>
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-6 right-20 z-50 shadow-md bg-white/80 backdrop-blur hover:bg-white"
+        >
+          <ArrowUp className="h-5 w-5" />
+        </Button>
+      )}
+
 
       <Footer />
     </div>
