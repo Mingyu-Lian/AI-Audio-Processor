@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react"
 import Header from "@/components/Header"
 import Footer from "@/components/Footer"
-import DynamicAudioPlayer from "@/components/AudioPlayer"
+// 老的bar import DynamicAudioPlayer from "@/components/AudioPlayer"
+//新的bar
+import DynamicAudioPlayer from "@/components/VerticalAudioPlayerV2"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronRight,  ArrowUp } from "lucide-react"
 import TranscriptSearchBox from "@/components/TranscriptSearchBox"
