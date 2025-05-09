@@ -6,6 +6,7 @@ import Footer from "@/components/Footer"
 import DynamicAudioPlayer from "@/components/AudioPlayer"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronRight,  ArrowUp } from "lucide-react"
+import TranscriptSearchBox from "@/components/TranscriptSearchBox"
 
 // TEST DATA
 import { mockTranscriptionData } from "../mockTranscriptionData"
@@ -107,8 +108,14 @@ export default function TranscriptionPage() {
   const [openGroups, setOpenGroups] = useState<Record<number, boolean>>({})
   const [allExpanded, setAllExpanded] = useState(true)
   const [showScrollTop, setShowScrollTop] = useState(false) 
+  const [highlightTerm, setHighlightTerm] = useState("")
+  const [highlightIndexes, setHighlightIndexes] = useState<number[]>([])
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
 
-
+  const handleSearchResultUpdate = (term: string, indexes: number[]) => {
+    setHighlightTerm(term)
+    setHighlightIndexes(indexes)
+  }
 
   useEffect(() => {
     segmentRefs.current = new Array(TRANSCRIPT_DATA.length).fill(null)
@@ -193,7 +200,17 @@ export default function TranscriptionPage() {
     }
   }, [audioDuration, autoScrollEnabled])
 
-
+  function highlightText(text: string, keyword: string): React.ReactNode {
+    if (!keyword) return text
+    const parts = text.split(new RegExp(`(${keyword})`, "gi"))
+    return parts.map((part, i) =>
+      part.toLowerCase() === keyword.toLowerCase() ? (
+        <span key={i} className="bg-yellow-200 font-semibold">{part}</span>
+      ) : (
+        part
+      )
+    )
+  }
   // Handle segment click to jump to that point in audio
   const handleSegmentClick = (start: number) => {
     userInteractionRef.current = true
@@ -258,6 +275,18 @@ export default function TranscriptionPage() {
               {allExpanded ? "Collapse All" : "Expand All"}
             </Button>
         </div>
+        <div className="mb-6 text-center space-x-2">
+          {/* 自定义的搜索框组件 */}
+          <TranscriptSearchBox
+              transcriptData={TRANSCRIPT_DATA}
+              segmentRefs={segmentRefs}
+              audioDuration={audioDuration}
+              groupTranscriptsByTime={groupTranscriptsByTime}
+              findGroupIndexForSegment={findGroupIndexForSegment}
+              setOpenGroups={setOpenGroups}
+              onSearchResultUpdate={handleSearchResultUpdate}
+            />
+        </div>
 
         {/* Main Content Area - Adjusted for the fixed audio player */}
         <div className={`max-w-5xl mx-auto ${isMobile ? "pr-4 sm:pr-16" : "pr-0 md:pr-16"}`}>
@@ -316,7 +345,9 @@ export default function TranscriptionPage() {
                             {formatTime(segment.start)} - {formatTime(segment.end)}
                           </div>
                           <div className={`col-span-9 text-gray-800 ${isMobile ? "text-xs" : "text-sm sm:text-base"}`}>
-                            {segment.text}
+                            {highlightIndexes.includes(realIndex)
+                              ? highlightText(segment.text, highlightTerm)
+                              : segment.text}
                           </div>
                         </div>
                       )
