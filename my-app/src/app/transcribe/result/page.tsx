@@ -7,7 +7,7 @@ import DynamicAudioPlayer from "@/components/AudioPlayer"
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronRight,  ArrowUp } from "lucide-react"
 import TranscriptSearchBox from "@/components/TranscriptSearchBox"
-
+import ExportTranscriptButton from "@/components/ExportTranscriptButton"
 // TEST DATA
 import { mockTranscriptionData } from "../mockTranscriptionData"
 import { mockLongTranscriptionData } from "../mockLongTranscriptionData"
@@ -288,27 +288,28 @@ export default function TranscriptionPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Transcription Result</h1>
           <p className="text-gray-600 mt-2">Audio transcription with timestamps</p>
         </div>
-        
-        {/* Auto-Scroll Toggle & Collapse Button */}
-        <div className="mb-6 text-center space-x-2">
-            {/* Auto-Scroll 按钮 */}
-            <Button
-              variant={autoScrollEnabled ? "default" : "outline"}
-              onClick={() => setAutoScrollEnabled((prev) => !prev)}
-              className="min-w-[140px]"
-            >
-              {autoScrollEnabled ? "Auto-Scroll: ON" : "Auto-Scroll: OFF"}
-            </Button>
 
-            {/* Collapse All 按钮，逻辑与 autoScroll 类似 */}
-            <Button
-              variant={allExpanded ? "default" : "outline"}
-              onClick={handleToggleAll}
-              className="min-w-[140px]"
-            >
-              {allExpanded ? "Collapse All" : "Expand All"}
-            </Button>
-        </div>
+        {/* Buttons */}
+        <div className="mb-6 flex flex-wrap justify-center gap-2">
+          <Button
+            variant={autoScrollEnabled ? "default" : "outline"}
+            onClick={() => setAutoScrollEnabled((prev) => !prev)}
+            className="min-w-[140px]"
+          >
+            {autoScrollEnabled ? "Auto-Scroll: ON" : "Auto-Scroll: OFF"}
+          </Button>
+
+          <Button
+            variant={allExpanded ? "default" : "outline"}
+            onClick={handleToggleAll}
+            className="min-w-[140px]"
+          >
+            {allExpanded ? "Collapse All" : "Expand All"}
+          </Button>
+
+          <ExportTranscriptButton groupedData={groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration)} />
+
+  </div>
         <div className="mb-6 text-center space-x-2">
           {/* 自定义的搜索框组件 */}
           <TranscriptSearchBox
