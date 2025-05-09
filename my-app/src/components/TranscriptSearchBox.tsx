@@ -1,8 +1,9 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { useState } from "react"
+import { ChevronUp, ChevronDown, X } from "lucide-react"
 
 type Props = {
   transcriptData: { start: number; end: number; text: string }[]
@@ -11,7 +12,12 @@ type Props = {
   groupTranscriptsByTime: (data: any[], duration: number) => any[]
   findGroupIndexForSegment: (idx: number, groups: any[]) => number
   setOpenGroups: React.Dispatch<React.SetStateAction<Record<number, boolean>>>
-  onSearchResultUpdate: (term: string, resultIndexes: number[]) => void  // 👈 通知父组件做高亮
+  onSearchResultUpdate: (term: string, resultIndexes: number[]) => void
+  currentMatchIndex: number
+  totalMatches: number
+  isFloating: boolean
+  setHasSearched: React.Dispatch<React.SetStateAction<boolean>>
+  goToMatch: (dir: "next" | "prev") => void
 }
 
 export default function TranscriptSearchBox({
@@ -22,12 +28,20 @@ export default function TranscriptSearchBox({
   findGroupIndexForSegment,
   setOpenGroups,
   onSearchResultUpdate,
+  currentMatchIndex,
+  totalMatches,
+  isFloating,
+  setHasSearched,
+  goToMatch,
 }: Props) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [resultCount, setResultCount] = useState<number | null>(null)
+  const [isVisible, setIsVisible] = useState(true)
 
   const handleSearch = () => {
     if (!searchTerm.trim()) return
+
+    setHasSearched(true)
+    setIsVisible(true)
 
     const lower = searchTerm.toLowerCase()
     const matchedIndexes = transcriptData
@@ -35,12 +49,10 @@ export default function TranscriptSearchBox({
       .filter((s) => s.text.includes(lower))
       .map((s) => s.index)
 
-    setResultCount(matchedIndexes.length)
     onSearchResultUpdate(searchTerm, matchedIndexes)
 
     const groups = groupTranscriptsByTime(transcriptData, audioDuration)
     const updated: Record<number, boolean> = {}
-
     matchedIndexes.forEach((idx) => {
       const groupIdx = findGroupIndexForSegment(idx, groups)
       updated[groupIdx] = true
@@ -55,25 +67,67 @@ export default function TranscriptSearchBox({
     }
   }
 
+  const handleClear = () => {
+    setIsVisible(false) // 淡出动画
+    setTimeout(() => {
+      setSearchTerm("")
+      onSearchResultUpdate("", [])
+      setHasSearched(false)
+      setIsVisible(true) // 重置为可见，便于后续操作
+    }, 300)
+  }
+
   return (
-    <div className="text-center space-y-2">
-      <div className="space-x-2">
+    <div
+      className={`
+        ${isFloating ? "fixed top-4 left-1/2 -translate-x-1/2 z-50" : "relative mx-auto mt-4"}
+        ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none"}
+        transition-all duration-300 ease-in-out
+        bg-white/80 backdrop-blur-md rounded-lg shadow-md px-3 py-2 space-y-1 w-[280px] border border-gray-300
+      `}
+    >
+      <div className="flex items-center gap-2">
         <Input
-          placeholder="Search transcript..."
-          className="inline-block w-[220px] mr-2"
+          placeholder="Search..."
+          className="h-8 px-2 text-sm"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") handleSearch()
           }}
         />
-        <Button onClick={handleSearch} variant="outline">Search</Button>
+        <Button
+          onClick={handleSearch}
+          variant="default"
+          size="sm"
+          className="h-8 px-4"
+        >
+          Go
+        </Button>
+        {searchTerm && (
+          <Button
+            onClick={handleClear}
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            aria-label="Clear"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
       </div>
-      {resultCount !== null && (
-        <div className="text-sm text-gray-600">
-          {resultCount > 0
-            ? `${resultCount} result${resultCount > 1 ? "s" : ""} found`
-            : "No results found"}
+
+      {totalMatches > 0 && (
+        <div className="flex items-center justify-center gap-2 text-xs text-gray-700">
+          <Button variant="ghost" size="icon" onClick={() => goToMatch("prev")}>
+            <ChevronUp className="h-4 w-4" />
+          </Button>
+          <span className="min-w-[60px] text-center">
+            {currentMatchIndex + 1} / {totalMatches}
+          </span>
+          <Button variant="ghost" size="icon" onClick={() => goToMatch("next")}>
+            <ChevronDown className="h-4 w-4" />
+          </Button>
         </div>
       )}
     </div>

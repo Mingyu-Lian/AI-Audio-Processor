@@ -111,6 +111,8 @@ export default function TranscriptionPage() {
   const [highlightTerm, setHighlightTerm] = useState("")
   const [highlightIndexes, setHighlightIndexes] = useState<number[]>([])
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
+  const [hasSearched, setHasSearched] = useState(false)
+  const [isFloating, setIsFloating] = useState(false)
 
   const handleSearchResultUpdate = (term: string, indexes: number[]) => {
     setHighlightTerm(term)
@@ -187,7 +189,7 @@ export default function TranscriptionPage() {
     userInteractionRef.current = false
   }, [currentTime, activeIndex, isUserScrolling, autoScrollEnabled])
   
-  
+  // Handle audio player events
   useEffect(() => {
     if (autoScrollEnabled) {
       const groups = groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration)
@@ -200,6 +202,7 @@ export default function TranscriptionPage() {
     }
   }, [audioDuration, autoScrollEnabled])
 
+  // Highlight search term in transcript
   function highlightText(text: string, keyword: string): React.ReactNode {
     if (!keyword) return text
     const parts = text.split(new RegExp(`(${keyword})`, "gi"))
@@ -211,6 +214,37 @@ export default function TranscriptionPage() {
       )
     )
   }
+  // Handle keyboard navigation for search results
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsFloating(window.scrollY > 160)
+    }
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+ // Handle keyboard navigation for search results
+  const goToMatch = (direction: "next" | "prev") => {
+    if (highlightIndexes.length === 0) return
+    let newIndex = currentMatchIndex + (direction === "next" ? 1 : -1)
+  
+    // 环绕跳转
+    if (newIndex < 0) newIndex = highlightIndexes.length - 1
+    if (newIndex >= highlightIndexes.length) newIndex = 0
+  
+    const realIdx = highlightIndexes[newIndex]
+    const groups = groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration)
+    const groupIdx = findGroupIndexForSegment(realIdx, groups)
+  
+    setOpenGroups({ [groupIdx]: true })        // 只展开当前组
+    setCurrentMatchIndex(newIndex)             // 更新当前索引
+  
+    const el = segmentRefs.current[realIdx]
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" })
+    }
+  }
+  
   // Handle segment click to jump to that point in audio
   const handleSegmentClick = (start: number) => {
     userInteractionRef.current = true
@@ -285,6 +319,11 @@ export default function TranscriptionPage() {
               findGroupIndexForSegment={findGroupIndexForSegment}
               setOpenGroups={setOpenGroups}
               onSearchResultUpdate={handleSearchResultUpdate}
+              currentMatchIndex={currentMatchIndex}
+              totalMatches={highlightIndexes.length}
+              goToMatch={goToMatch}
+              isFloating={isFloating && hasSearched}
+              setHasSearched={setHasSearched}
             />
         </div>
 
