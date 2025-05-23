@@ -7,7 +7,7 @@ import Footer from "@/components/Footer"
 //新的bar
 import DynamicAudioPlayer from "@/components/VerticalAudioPlayerV2"
 import { Button } from "@/components/ui/button"
-import { ChevronDown, ChevronRight,  ArrowUp } from "lucide-react"
+import { ChevronDown, ChevronRight,  ArrowUp, Star } from "lucide-react"
 import TranscriptSearchBox from "@/components/TranscriptSearchBox"
 import ExportTranscriptButton from "@/components/ExportTranscriptButton"
 import GroupProgressBar from "@/components/GroupProgressBar"
@@ -119,6 +119,7 @@ export default function TranscriptionPage() {
   const [hasSearched, setHasSearched] = useState(false)
   const [isFloating, setIsFloating] = useState(false)
   const [isFooterVisible, setIsFooterVisible] = useState(false)
+  const [favorites, setFavorites] = useState<Record<number, boolean>>({})
 
   const handleSearchResultUpdate = (term: string, indexes: number[]) => {
     setHighlightTerm(term)
@@ -251,6 +252,13 @@ export default function TranscriptionPage() {
     }
   }
   
+  // Handle favorite toggle
+  const toggleFavorite = (index: number) => {
+  setFavorites((prev) => ({
+    ...prev,
+    [index]: !prev[index],
+  }))
+}
   // Handle segment click to jump to that point in audio
   const handleSegmentClick = (start: number) => {
     userInteractionRef.current = true
@@ -409,9 +417,33 @@ export default function TranscriptionPage() {
                           {formatTime(segment.start)} - {formatTime(segment.end)}
                         </div>
                         <div className={`col-span-9 text-gray-800 ${isMobile ? "text-xs" : "text-sm sm:text-base"}`}>
-                          {highlightIndexes.includes(realIndex)
-                            ? highlightText(segment.text, highlightTerm)
-                            : segment.text}
+                          <div className="flex justify-between items-center group">
+                            <span>
+                              {highlightIndexes.includes(realIndex)
+                                ? highlightText(segment.text, highlightTerm)
+                                : segment.text}
+                            </span>
+
+                            {(favorites[realIndex] || true) && (
+                              <button
+                                className={`ml-2 transition-opacity ${
+                                  favorites[realIndex] ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                }`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  toggleFavorite(realIndex)
+                                }}
+                                aria-label="Toggle Favorite"
+                              >
+                                <Star
+                                  size={16}
+                                  color={favorites[realIndex] ? "#facc15" : "#ccc"}
+                                  fill={favorites[realIndex] ? "#facc15" : "none"}
+                                />
+                              </button>
+                            )}
+                          </div>
+
                         </div>
                       </div>
                     )
