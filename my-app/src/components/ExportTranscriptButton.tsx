@@ -2,12 +2,17 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Save } from "lucide-react"
 import jsPDF from "jspdf"
 
-// Type definitions
 interface Segment {
   start: number
   end: number
@@ -22,6 +27,7 @@ interface Group {
 
 interface Props {
   groupedData: Group[]
+  favorites: Record<number, boolean>
 }
 
 function formatTime(seconds: number): string {
@@ -36,10 +42,11 @@ function formatTime(seconds: number): string {
   return `${hoursStr}${minsStr}:${secsStr}`
 }
 
-export default function ExportTranscriptWithSelection({ groupedData }: Props) {
+export default function ExportTranscriptWithSelection({ groupedData, favorites }: Props) {
   const [selectedGroups, setSelectedGroups] = useState<number[]>(
     groupedData.map((_, idx) => idx)
   )
+  const [onlyFavorites, setOnlyFavorites] = useState(false)
 
   const toggleGroup = (idx: number) => {
     setSelectedGroups((prev) =>
@@ -61,6 +68,12 @@ export default function ExportTranscriptWithSelection({ groupedData }: Props) {
       if (!selectedGroups.includes(groupIdx)) return
 
       group.segments.forEach((seg, idx) => {
+        const realIndex = groupedData
+          .flatMap((g) => g.segments)
+          .findIndex((s) => s.start === seg.start && s.end === seg.end)
+
+        if (onlyFavorites && !favorites[realIndex]) return
+
         const timeRange = `${formatTime(seg.start)} - ${formatTime(seg.end)}`
         const header = `${idx + 1}. ${timeRange}`
         const wrapped = doc.splitTextToSize(seg.text, 180)
@@ -103,21 +116,30 @@ export default function ExportTranscriptWithSelection({ groupedData }: Props) {
         <DialogHeader>
           <DialogTitle>Select Groups to Export</DialogTitle>
         </DialogHeader>
+
+        <div className="pt-2 px-1 flex items-center gap-2">
+          <Checkbox
+            checked={onlyFavorites}
+            onCheckedChange={() => setOnlyFavorites(!onlyFavorites)}
+          />
+          <span className="text-sm">Only export favorited segments</span>
+        </div>
+
         <div className="flex justify-end gap-2 px-1 pt-2">
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedGroups(groupedData.map((_, idx) => idx))}
-            >
-                Select All
-            </Button>
-            <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedGroups([])}
-            >
-                Cancel All
-            </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedGroups(groupedData.map((_, idx) => idx))}
+          >
+            Select All
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSelectedGroups([])}
+          >
+            Cancel All
+          </Button>
         </div>
 
         <div className="space-y-2 px-1 pt-2">
@@ -133,8 +155,11 @@ export default function ExportTranscriptWithSelection({ groupedData }: Props) {
             </label>
           ))}
         </div>
+
         <div className="pt-4 text-center">
-          <Button onClick={handleExport} className="w-full">Preview & Export PDF</Button>
+          <Button onClick={handleExport} className="w-full">
+            Preview & Export PDF
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

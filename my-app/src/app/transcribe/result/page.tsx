@@ -339,7 +339,10 @@ export default function TranscriptionPage() {
             {allExpanded ? "Collapse All" : "Expand All"}
           </Button>
 
-          <ExportTranscriptButton groupedData={groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration)} />
+          <ExportTranscriptButton
+            groupedData={groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration)}
+            favorites={favorites}
+          />
 
   </div>
         <div className="mb-6 text-center space-x-2">
@@ -386,14 +389,32 @@ export default function TranscriptionPage() {
                         [groupIndex]: !prev[groupIndex],
                       }))
                     }
-                    className="w-full text-left px-4 py-2 bg-gray-100 hover:bg-gray-200 flex items-center justify-between font-semibold text-sm">
-                    <span>{formatTime(group.groupStart)} - {formatTime(group.groupEnd)}</span>
+                    className="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 flex items-center justify-between font-semibold text-sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{formatTime(group.groupStart)} - {formatTime(group.groupEnd)}</span>
+                      {group.segments.some(seg => {
+                        const realIndex = TRANSCRIPT_DATA.findIndex(
+                          (s) => s.start === seg.start && s.end === seg.end
+                        )
+                        return favorites[realIndex]
+                      }) && (
+                        <Star
+                          size={16}
+                          color="#facc15"
+                          fill="#facc15"
+                          className="ml-1"
+                        />
+                      )}
+                    </div>
+
                     <ChevronDown
                       className={`h-4 w-4 transform transition-transform ${
                         openGroups[groupIndex] ? "rotate-180" : ""
                       }`}
                     />
                   </button>
+
                   {/* Animated content */}
                   <div className={`collapsible-content-wrapper ${openGroups[groupIndex] ? "expanded" : ""}`}>
                 
