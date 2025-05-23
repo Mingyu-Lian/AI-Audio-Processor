@@ -15,6 +15,7 @@ type Props = {
   onSearchResultUpdate: (term: string, resultIndexes: number[]) => void
   currentMatchIndex: number
   totalMatches: number
+  hasSearched: boolean
   isFloating: boolean
   setHasSearched: React.Dispatch<React.SetStateAction<boolean>>
   goToMatch: (dir: "next" | "prev") => void
@@ -30,6 +31,7 @@ export default function TranscriptSearchBox({
   onSearchResultUpdate,
   currentMatchIndex,
   totalMatches,
+  hasSearched,
   isFloating,
   setHasSearched,
   goToMatch,
@@ -128,9 +130,10 @@ export default function TranscriptSearchBox({
             <ChevronDown className="h-4 w-4" />
           </Button>
         </div>
-      ) : (
+      ) : hasSearched ? (
         <div className="text-xs text-center text-gray-500 mt-1">No result</div>
-      )}
+      ) : null}
+
       
     </div>
   )

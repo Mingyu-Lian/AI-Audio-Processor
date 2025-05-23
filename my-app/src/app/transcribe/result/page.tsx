@@ -346,13 +346,11 @@ export default function TranscriptionPage() {
               onSearchResultUpdate={handleSearchResultUpdate}
               currentMatchIndex={currentMatchIndex}
               totalMatches={highlightIndexes.length}
+              hasSearched={hasSearched}
               goToMatch={goToMatch}
               isFloating={isFloating && hasSearched}
               setHasSearched={setHasSearched}
             />
-            {hasSearched && highlightTerm && highlightIndexes.length === 0 && (
-              <p className="text-center text-sm text-gray-500 mt-2">No result</p>
-            )}
         </div>
 
         {/* Main Content Area - Adjusted for the fixed audio player */}
