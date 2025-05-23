@@ -116,8 +116,7 @@ export default function TranscriptSearchBox({
           </Button>
         )}
       </div>
-
-      {totalMatches > 0 && (
+      {totalMatches > 0 ? (
         <div className="flex items-center justify-center gap-2 text-xs text-gray-700">
           <Button variant="ghost" size="icon" onClick={() => goToMatch("prev")}>
             <ChevronUp className="h-4 w-4" />
@@ -129,7 +128,10 @@ export default function TranscriptSearchBox({
             <ChevronDown className="h-4 w-4" />
           </Button>
         </div>
+      ) : (
+        <div className="text-xs text-center text-gray-500 mt-1">No result</div>
       )}
+      
     </div>
   )
 }
