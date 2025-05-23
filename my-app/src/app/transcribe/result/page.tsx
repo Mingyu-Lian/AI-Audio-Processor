@@ -10,9 +10,12 @@ import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronRight,  ArrowUp } from "lucide-react"
 import TranscriptSearchBox from "@/components/TranscriptSearchBox"
 import ExportTranscriptButton from "@/components/ExportTranscriptButton"
+import GroupProgressBar from "@/components/GroupProgressBar"
+import { toast } from "sonner"
 // TEST DATA
 import { mockTranscriptionData } from "../mockTranscriptionData"
 import { mockLongTranscriptionData } from "../mockLongTranscriptionData"
+
 
 // === CONFIG AREA: easy to change when testing ===
 const AUDIO_URL = "/audio/one_and_half_hour.mp3"
@@ -115,6 +118,7 @@ export default function TranscriptionPage() {
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0)
   const [hasSearched, setHasSearched] = useState(false)
   const [isFloating, setIsFloating] = useState(false)
+  const [isFooterVisible, setIsFooterVisible] = useState(false)
 
   const handleSearchResultUpdate = (term: string, indexes: number[]) => {
     setHighlightTerm(term)
@@ -275,6 +279,24 @@ export default function TranscriptionPage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  // Handle footer visibility
+  // This is a workaround to detect if the footer is visible
+  useEffect(() => {
+  const footerEl = document.querySelector("footer")
+
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      setIsFooterVisible(entry.isIntersecting)
+    },
+    { threshold: 0.1 }
+  )
+
+  if (footerEl) observer.observe(footerEl)
+
+  return () => {
+    if (footerEl) observer.unobserve(footerEl)
+  }
+}, [])
   // Handle time updates from the audio player
   const handleTimeUpdate = (time: number) => {
     setCurrentTime(time)
@@ -349,6 +371,7 @@ export default function TranscriptionPage() {
                   <div key={groupIndex} 
                   ref={(el) => { groupRefs.current[groupIndex] = el }}
                   className="border-b">
+                  
                   {/* Trigger bar */}
                   <button
                     onClick={() =>
@@ -365,38 +388,37 @@ export default function TranscriptionPage() {
                       }`}
                     />
                   </button>
-                
-                  {/* Animated content */}
                   {/* Animated content */}
                   <div className={`collapsible-content-wrapper ${openGroups[groupIndex] ? "expanded" : ""}`}>
                 
                     {group.segments.map((segment: Segment, index) => {
-                      const realIndex = TRANSCRIPT_DATA.findIndex(
-                        (s) => s.start === segment.start && s.end === segment.end
-                      )
-                
-                      return (
-                        <div
-                          key={index}
-                          ref={(el: HTMLDivElement | null) => {
-                            segmentRefs.current[realIndex] = el
-                          }}
-                          onClick={() => handleSegmentClick(segment.start)}
-                          className={`grid grid-cols-12 gap-2 border-b border-gray-100 px-4 py-3 transition cursor-pointer ${
-                            realIndex === activeIndex ? "bg-yellow-50 border-l-4 border-l-yellow-400" : "hover:bg-gray-50"
-                          }`}
-                        >
-                          <div className="col-span-3 font-mono text-gray-600 text-xs sm:text-sm font-semibold">
-                            {formatTime(segment.start)} - {formatTime(segment.end)}
-                          </div>
-                          <div className={`col-span-9 text-gray-800 ${isMobile ? "text-xs" : "text-sm sm:text-base"}`}>
-                            {highlightIndexes.includes(realIndex)
-                              ? highlightText(segment.text, highlightTerm)
-                              : segment.text}
-                          </div>
+                    const realIndex = TRANSCRIPT_DATA.findIndex(
+                      (s) => s.start === segment.start && s.end === segment.end
+                    )
+
+                    return (
+                      <div
+                        key={index}
+                        ref={(el: HTMLDivElement | null) => {
+                          segmentRefs.current[realIndex] = el
+                        }}
+                        onClick={() => handleSegmentClick(segment.start)}
+                        className={`grid grid-cols-12 gap-2 border-b border-gray-100 px-4 py-3 transition cursor-pointer ${
+                          realIndex === activeIndex ? "bg-yellow-50 border-l-4 border-l-yellow-400" : "hover:bg-gray-50"
+                        }`}
+                      >
+                        <div className="col-span-3 font-mono text-gray-600 text-xs sm:text-sm font-semibold">
+                          {formatTime(segment.start)} - {formatTime(segment.end)}
                         </div>
-                      )
-                    })}
+                        <div className={`col-span-9 text-gray-800 ${isMobile ? "text-xs" : "text-sm sm:text-base"}`}>
+                          {highlightIndexes.includes(realIndex)
+                            ? highlightText(segment.text, highlightTerm)
+                            : segment.text}
+                        </div>
+                      </div>
+                    )
+                  })}
+
                   </div>
                   </div>
               )
@@ -414,6 +436,104 @@ export default function TranscriptionPage() {
           isMobile={isMobile}
         />
       </main>
+      {/* Floating Group Progress Bar */}
+      {groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration).map((group, groupIndex) => {
+        const isGroupOpen = openGroups[groupIndex]
+        const isActiveGroup = currentTime >= group.groupStart && currentTime < group.groupEnd
+        const isVisible = isGroupOpen && isActiveGroup && !isFooterVisible
+
+        return (
+          <GroupProgressBar
+            key={groupIndex}
+            currentTime={currentTime}
+            start={group.groupStart}
+            end={group.groupEnd}
+            onSeek={(newTime) => {
+              userInteractionRef.current = false
+              setCurrentTime(newTime)
+              if (audioRef.current) {
+                audioRef.current.currentTime = newTime
+              }
+            }}
+            isVisible={isVisible}
+            goToNextGroupStart={() => {
+              const groups = groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration)
+              const nextGroup = groups[groupIndex + 1]
+              if (!nextGroup) {
+                toast("You are already at the last section.")
+                return
+              }
+
+              const firstSeg = nextGroup.segments[0]
+              userInteractionRef.current = false
+              setCurrentTime(firstSeg.start)
+              if (audioRef.current) {
+                audioRef.current.currentTime = firstSeg.start
+                audioRef.current.play().catch(console.error)
+              }
+              setOpenGroups(() => {
+                const updated: Record<number, boolean> = {}
+                groups.forEach((_, i) => {
+                  updated[i] = i === groupIndex + 1
+                })
+                return updated
+              })
+
+              const scrollToFirstLine = () => {
+                const realIndex = TRANSCRIPT_DATA.findIndex(
+                  (s) => s.start === firstSeg.start && s.end === firstSeg.end
+                )
+                const el = segmentRefs.current[realIndex]
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "center" })
+                } else {
+                  setTimeout(scrollToFirstLine, 100)
+                }
+              }
+              setTimeout(scrollToFirstLine, 400)
+            }}
+            goToPrevGroupStart={() => {
+              const groups = groupTranscriptsByTime(TRANSCRIPT_DATA, audioDuration)
+              const prevGroup = groups[groupIndex - 1]
+              if (!prevGroup) {
+                toast("You are already at the first section.")
+                return
+              }
+
+              const firstSeg = prevGroup.segments[0]
+              userInteractionRef.current = false
+              setCurrentTime(firstSeg.start)
+              if (audioRef.current) {
+                audioRef.current.currentTime = firstSeg.start
+                audioRef.current.play().catch(console.error)
+              }
+              setOpenGroups(() => {
+                const updated: Record<number, boolean> = {}
+                groups.forEach((_, i) => {
+                  updated[i] = i === groupIndex - 1
+                })
+                return updated
+              })
+
+              const scrollToFirstLine = () => {
+                const realIndex = TRANSCRIPT_DATA.findIndex(
+                  (s) => s.start === firstSeg.start && s.end === firstSeg.end
+                )
+                const el = segmentRefs.current[realIndex]
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "center" })
+                } else {
+                  setTimeout(scrollToFirstLine, 100)
+                }
+              }
+              setTimeout(scrollToFirstLine, 400)
+            }}
+          />
+
+        )
+      })}
+
+
 
       {/* Scroll to Top Button */}
       {showScrollTop && (
