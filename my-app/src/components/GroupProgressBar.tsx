@@ -28,10 +28,10 @@ export default function GroupProgressBar({
   return (
     <div
       className={`fixed bottom-0 left-0 w-full z-50 transition-opacity duration-300 ${
-        isVisible ? "opacity-95 pointer-events-auto" : "opacity-0 pointer-events-none"
+        isVisible ? "opacity-90 pointer-events-auto" : "opacity-0 pointer-events-none"
       }`}
     >
-      <div className="w-full px-4 sm:px-3 lg:px-6 max-w-screen-xl mx-auto bg-white/70 backdrop-blur border-t border-yellow-200 shadow-md rounded-t-lg py-4 flex items-center gap-4">
+      <div className="w-full px-4 sm:px-3 lg:px-6 max-w-screen-xl mx-auto bg-white/90 backdrop-blur border-t border-black-200 shadow-md rounded-t-lg py-4 flex items-center gap-4">
         {/* Prev Section */}
         <Button
           variant="outline"

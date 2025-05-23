@@ -356,7 +356,7 @@ export default function TranscriptionPage() {
         </div>
 
         {/* Main Content Area - Adjusted for the fixed audio player */}
-        <div className={`max-w-5xl mx-auto ${isMobile ? "pr-4 sm:pr-16" : "pr-0 md:pr-16"}`}>
+        <div className={`max-w-5xl mx-auto ${isMobile ? "pr-8 sm:pr-20" : "pr-0 md:pr-16"}`}>
           {/* Transcript Container */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
             {/* Header Row */}
@@ -533,18 +533,27 @@ export default function TranscriptionPage() {
         )
       })}
 
-
-
       {/* Scroll to Top Button */}
       {showScrollTop && (
         <Button
           variant="outline"
           size="icon"
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-          className="fixed bottom-6 right-20 z-50 shadow-md bg-white/80 backdrop-blur hover:bg-white"
+          style={{
+            position: "fixed",
+            bottom: "85px",
+            right: "50px",
+            zIndex: 9999,
+            backgroundColor: "rgba(255, 255, 255, 0.8)",
+            backdropFilter: "blur(4px)",
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.2)",
+            borderRadius: "9999px",
+          }}
+          aria-label="Scroll to Top"
         >
-          <ArrowUp className="h-5 w-5" />
+          <ArrowUp style={{ width: 20, height: 20 }} />
         </Button>
+
       )}
 
 
