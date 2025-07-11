@@ -20,11 +20,7 @@ other User
 
 
 
-forgot password email
-support@sentriwise.com.au
 
-Forgot Password?
-Contact our team here using your registered email: support@sentriwise.com.au
 
 Azure email 
 
