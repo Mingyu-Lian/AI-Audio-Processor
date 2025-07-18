@@ -60,11 +60,14 @@ export default function LoginSignupModal() {
         localStorage.setItem(
           "user",
           JSON.stringify({
-            email: data.user.email,
-            credits: data.user.credits,
-            token: data.tokens.access, // 存储 access token，方便后续请求携带
-            // 如果你想在后面也用 refresh token，可以一起保存
-            refreshToken: data.tokens.refresh
+            user: {
+              email: data.user.email,
+              credits: data.user.credits
+            },
+            tokens: {
+              access: data.tokens.access,
+              refresh: data.tokens.refresh
+            }
           })
         );
 

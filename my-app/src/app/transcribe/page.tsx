@@ -22,19 +22,100 @@ export default function TranscribePage() {
   };
 
   const handleSubmit = async () => {
-    if (files.length === 0) {
-      alert("Please select a file to upload.");
-      return;
+  if (files.length === 0) {
+    alert("Please select a file to upload.");
+    return;
+  }
+
+  const file = files[0];
+  const filename = `${Date.now()}-${file.name}`;
+  setUploading(true);
+
+  try {
+    // Step 1: 获取 SAS 上传链接
+    const raw = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    let token = null;
+
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        token = parsed?.tokens?.access || parsed?.access || null;
+      } catch (e) {
+        console.error("Invalid JSON in localStorage['user']", e);
+      }
     }
 
-    setUploading(true);
+    if (!token) {
+      alert("Please login first.");
+      throw new Error("Missing token");
+    }
 
-    // 模拟上传 + 转录
-    setTimeout(() => {
-      setResult("Hello, this is a sample transcription result with timestamps.");
-      setUploading(false);
-    }, 3000);
-  };
+    const sasRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-upload-url/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ filename }),
+    });
+
+    const sasData = await sasRes.json();
+    if (!sasData.upload_url || !sasData.blob_url) throw new Error("Failed to get upload URL");
+
+    // Step 2: 上传音频到 Azure Blob
+    await fetch(sasData.upload_url, {
+      method: "PUT",
+      headers: {
+        "x-ms-blob-type": "BlockBlob",
+        "Content-Type": file.type,
+      },
+      body: file,
+    });
+
+    // Step 3: 提交 Azure Batch 任务
+    const batchRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/submit-batch-job/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ audio_url: sasData.blob_url }),
+    });
+
+    const batchData = await batchRes.json();
+    const jobUrl = batchData.job_url;
+    if (!jobUrl) throw new Error("Failed to submit batch job");
+
+    // Step 4: 轮询获取转录结果
+    let status = "Running";
+    let segments = [];
+    for (let i = 0; i < 20; i++) {
+      await new Promise((res) => setTimeout(res, 5000)); // wait 5s
+      const resultRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-transcription-result/?job_url=${encodeURIComponent(jobUrl)}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const resultData = await resultRes.json();
+      if (resultData.status === "Succeeded") {
+        segments = resultData.segments;
+        break;
+      } else if (resultData.status === "Failed") {
+        throw new Error("Transcription failed");
+      }
+    }
+
+    // Step 5: 存入 localStorage，并跳转 result 页面
+    localStorage.setItem("transcription_result", JSON.stringify(segments));
+    window.location.href = "/result";
+  } catch (err: any) {
+    alert("Error: " + err.message);
+  } finally {
+    setUploading(false);
+  }
+};
+
 
   return (
     <div className="flex flex-col min-h-screen">

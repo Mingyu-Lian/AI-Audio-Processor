@@ -13,5 +13,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 5. 复制所有代码到容器
 COPY . .
 
-# 6. 运行 Django 服务器
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# 6. 设置环境变量
+ENV PYTHONPATH=/app
+
+# 7. 运行数据库迁移
+RUN python backend/manage.py migrate
+
+# 8. 运行 Django 服务器
+CMD ["python", "backend/manage.py", "runserver", "0.0.0.0:8000"]

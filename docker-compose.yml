@@ -6,4 +6,21 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+    environment:
+      - DEBUG=True
+      - AZURE_SPEECH_REGION=australiaeast
+      - AZURE_STORAGE_CONTAINER=uploads
     restart: always
+    depends_on: []
+
+  frontend:
+    build: ./my-app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./my-app:/app
+      - /app/node_modules
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - backend

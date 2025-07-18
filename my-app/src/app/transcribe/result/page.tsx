@@ -18,10 +18,16 @@ import { mockLongTranscriptionData } from "../mockLongTranscriptionData"
 
 
 // === CONFIG AREA: easy to change when testing ===
-const AUDIO_URL = "/audio/one_and_half_hour.mp3"
+const AUDIO_URL =
+  typeof window !== "undefined"
+    ? localStorage.getItem("audio_url") || "/audio/one_and_half_hour.mp3"
+    : "/audio/one_and_half_hour.mp3"
 
 // const TRANSCRIPT_DATA = mockTranscriptionData
-const TRANSCRIPT_DATA = mockLongTranscriptionData
+const raw = typeof window !== "undefined" ? localStorage.getItem("transcription_result") : null
+const parsed: Segment[] = raw ? JSON.parse(raw) : []
+
+const TRANSCRIPT_DATA = parsed.length > 0 ? parsed : mockLongTranscriptionData
 
 
 function formatTime(seconds: number): string {
