@@ -1,5 +1,17 @@
 version: "3"
 services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: audio_app
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
   backend:
     build: .
     ports:
@@ -10,8 +22,14 @@ services:
       - DEBUG=True
       - AZURE_SPEECH_REGION=australiaeast
       - AZURE_STORAGE_CONTAINER=uploads
+      - DB_NAME=audio_app
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
     restart: always
-    depends_on: []
+    depends_on:
+      - db
 
   frontend:
     build: ./my-app
@@ -24,3 +42,6 @@ services:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
     depends_on:
       - backend
+
+volumes:
+  postgres_data:

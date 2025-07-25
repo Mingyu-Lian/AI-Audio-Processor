@@ -1,25 +1,31 @@
 # AI-Audio-Processor
 # Django for back-end and react for front-end
 
-Backend Admin：
-admin
-admin@example.com
-PW: 123123
+
 
 frontend run
 `cd my-app`
 `npm run dev`
 Back-end run:
-
+`cd backend`
 `source venv/bin/activate`
 
 `python manage.py runserver`
+
+Backend Admin：
+admin
+admin@example.com
+PW: 123123
+
+
 
 
 other User 
 {"email": "user1@example.com", "password": "123123"}'
 
-
+john.doe@example.com / password123
+jane.smith@example.com / password123
+alice.brown@example.com / password123
 
 
 
