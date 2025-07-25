@@ -29,6 +29,15 @@ alice.brown@example.com / password123
 
 
 
+Current Database Configuration:
+Database Name: audio_app
+Username: postgres
+Password: postgres
+Host: db (when running in Docker) or localhost (from your host machine)
+Port: 5432
+
+
+
 Azure email 
 
 Team response: Contact ben palmer & arthur on Slack for reset & provide new password to customer.
